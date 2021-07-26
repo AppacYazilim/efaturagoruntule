@@ -49,6 +49,7 @@ function App() {
         );
 
           var frog = window.open(winUrl)
+          frog.print();
             //holder.style.background = 'url(' + event.target.result + ') no-repeat center';
         
           };
