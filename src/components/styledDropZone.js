@@ -1,3 +1,4 @@
+import Table from 'rc-table';
 import React, { useMemo } from 'react';
 import { useDropzone } from 'react-dropzone';
 
@@ -180,22 +181,46 @@ export default function StyledDropzone(props) {
 
         </div>
       </div>
-      <aside>
+      {/* <aside>
         <h4>Accepted files</h4>
         <ul>{acceptedFileItems}</ul>
         <h4>Rejected files</h4>
         <ul>{fileRejectionItems}</ul>
-      </aside>
-      {invoices.map(i => (
-        <div key={i.UUID}>
-          ID #{i.id}({i.type})
-          Buyer {i.buyerName}({i.buyerID})
-          Seller {i.sellerName}({i.sellerID})
-          Total {i.total}
-          TotalWithTax {i.totalWithTax}
-          <a target={i.UUID} href={i.blob}>Open</a>
-        </div>
-      ))}
+      </aside> */}
+      <h2> XML Sonuçları </h2>
+      <div className="table-responsive">
+
+      <table className="table" style={{fontSize:18}}>
+        <thead>
+          <tr>
+      
+            <th>ID</th>
+            <th>Type</th>
+            <th>Buyer</th>
+            <th>Seller</th>
+            <th>Total</th>
+            <th>TotalWithTax</th>
+            <th>Download</th>
+          </tr>
+        </thead>
+        <tbody>
+          {invoices.map(i => (
+            <tr key={i.UUID}>
+              <td>{i.id}</td>
+              <td>{i.type}</td>
+              <td>{i.buyerName}({i.buyerID})</td>
+              <td>{i.sellerName}({i.sellerID})</td>
+              <td>{i.total}</td>
+              <td>{i.totalWithTax}</td>
+
+            </tr>
+
+          ))}
+
+
+        </tbody>
+      </table>
+</div>
     </section>
   );
 }
