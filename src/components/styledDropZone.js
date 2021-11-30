@@ -6,6 +6,9 @@ import { saveAs } from 'file-saver';
 import ReactTooltip from "react-tooltip";
 import { FaEye, FaDownload, FaPrint,FaTrash  } from "react-icons/fa";
 import ExportJsonExcel from 'js-export-excel';
+import AnimationData from '../lf30_editor_xemc1wj7.json';
+import LottieLoader from 'react-lottie-loader';
+import ButtonGroup from 'antd/lib/button/button-group';
 
 function b64DecodeUnicode(str) {
   // Going backwards: from bytestream, to percent-encoding, to original string.
@@ -158,6 +161,13 @@ let xmltohtml = (path, contents) => {
   }
 }
 
+const formatPrice = (price) => {
+  return new Intl.NumberFormat('tr-TR', {
+    style: 'currency',
+    currency: 'TRY'
+  }).format(price);
+}
+
 export default function StyledDropzone(props) {
   const {
     acceptedFiles,
@@ -167,7 +177,7 @@ export default function StyledDropzone(props) {
     isDragActive,
     isDragAccept,
     isDragReject,
-  } = useDropzone({ accept: ['text/xml', 'application/zip'], maxFiles: 100 });
+  } = useDropzone({ accept: ['text/xml', 'application/zip', 'application/x-zip-compressed', 'multipart/x-zip'], maxFiles: 100 });
 
   const [files, setFiles] = React.useState([]);
   const [invoices, setInvoices] = React.useState([]);
@@ -221,7 +231,7 @@ export default function StyledDropzone(props) {
         const f = xmltohtml(file.path, await readFile(file));
         setNumLoad(d => d - 1);
         return f
-      } else if (file.type === "application/zip") {
+      } else if (file.type === "application/zip"  || file.type === "application/x-zip-compressed" || file.type === "multipart/x-zip") {
         const fileBuffer = await readFileBuffer(file);
 
         const zip = await JSZip.loadAsync(fileBuffer)
@@ -333,6 +343,7 @@ export default function StyledDropzone(props) {
   }
 
   return (
+    <>
     <section className='container'>
       <div className='container p-2' style={{ backgroundColor: '#3789DC', borderRadius: 5 }}>
         <div {...getRootProps({ style })}>
@@ -346,68 +357,86 @@ export default function StyledDropzone(props) {
         <h4>Rejected files</h4>
         <ul>{fileRejectionItems}</ul>
       </aside> */}
-      {numLoad}
       <h2> İşlenen Faturalar </h2>
-      <div className="table-responsive">
-      
-      <table className="table table-bordered table-striped" style={{fontSize:18}}>
-        <thead>
-          <tr>
-      
-            <th>Fatura No</th>
-            <th>Türü</th>
-            <th>Satıcı</th>
-            <th>Alıcı</th>
-            <th>Düzenlenme Tarihi</th>
-            <th>Düzenlenme Saati</th>
-            <th>Vergiler Hariç Toplam</th>
-            <th>Vergiler Dahil Toplam</th>
-            <th>İşlemler</th>
-          </tr>
-        </thead>
-        <tbody>
-          {invoices.map(i => (
-            <tr className='align-middle' key={i.UUID}>
-              <td><code>{i.id}</code></td>
-              <td>{i.type}</td>
-
-              
-              <td><ReactTooltip id={`seller_${i.UUID}`}><span>{i.sellerName}</span></ReactTooltip><a data-tip data-for={`seller_${i.UUID}`} href={"#"}><code>{i.sellerID}</code></a></td>
-              <td><ReactTooltip id={`buyer_${i.UUID}`}><span>{i.buyerName}</span></ReactTooltip><a data-tip data-for={`buyer_${i.UUID}`} href={"#"}><code>{i.buyerID}</code></a></td>
-              <td>{i.issueDate}</td>
-              <td>{i.issueTime || "-"}</td>
-              <td>{i.total}</td>
-              <td>{i.totalWithTax}</td>
-              <td style={{minWidth:220}}>
-                <ReactTooltip id={`view_${i.UUID}`}><span>Görüntüle</span></ReactTooltip><a data-tip data-for={`view_${i.UUID}`} class="btn btn-outline-primary" target={i.UUID} href={i.blob}><FaEye/></a>
-                <ReactTooltip id={`download_${i.UUID}`}><span>İndir</span></ReactTooltip><a data-tip data-for={`download_${i.UUID}`} class="btn btn-outline-success ms-2" download={`${i.id}.html`} href={i.blob}><FaDownload/></a>
-                <ReactTooltip id={`print_${i.UUID}`}><span>Yazdır</span></ReactTooltip><a data-tip data-for={`print_${i.UUID}`} class="btn btn-outline-dark  ms-2" href={i.blob} onClick={e => printBlob(e, i.blob)}><FaPrint/></a>
-                <ReactTooltip id={`delete_${i.UUID}`}><span>Sil</span></ReactTooltip><a data-tip data-for={`delete_${i.UUID}`} class="btn btn-outline-danger ms-2" href={"#"} onClick={e => {
-                setInvoices(invoices.filter(invoice => invoice.id !== i.id))
-              }}><FaTrash/></a></td>
-
-              </tr>
-
-            ))}
-
-            <tr>
-              <td>Toplam: {invoices.length} Fatura</td>
-              <td></td>
-              <td></td>
-              <td></td>
-              <td></td>
-              <td></td>
-              <td>{invoices.reduce((s, i) => s + i.total, 0)}</td>
-              <td>{invoices.reduce((s, i) => s + i.totalWithTax, 0)}</td>
-              <td>{invoices.length > 0 && <a href="#" onClick={downloadAll}>Toplu İndir</a>}{invoices.length > 0 && <a href="#" onClick={downloadExcel}>Excel İndir</a>}</td>
-            </tr>
-
-            
-
-
-          </tbody>
-        </table>
-      </div>
     </section>
+    {
+      numLoad ? (
+        <div>
+           <LottieLoader animationData={AnimationData} />
+           <h2>Faturalarınız Yükleniyor {numLoad}</h2>
+        </div>
+      ) : (
+
+        <div className="table-responsive">
+      
+        <table className="table table-bordered table-striped" style={{fontSize:18}}>
+          <thead>
+            <tr>
+        
+              <th>Fatura No</th>
+              <th>Türü</th>
+              <th>Satıcı</th>
+              <th>Alıcı</th>
+              <th>Düzenlenme Tarihi</th>
+              <th>Düzenlenme Saati</th>
+              <th>Vergiler Hariç Toplam</th>
+              <th>Vergiler Dahil Toplam</th>
+              <th>İşlemler</th>
+            </tr>
+          </thead>
+          <tbody>
+            {invoices.map(i => (
+              <tr className='align-middle' key={i.UUID}>
+                <td><code>{i.id}</code></td>
+                <td>{i.type}</td>
+  
+                
+                <td><ReactTooltip id={`seller_${i.UUID}`}><span>{i.sellerName}</span></ReactTooltip><a data-tip data-for={`seller_${i.UUID}`} href={"#"}><code>{i.sellerID}</code></a></td>
+                <td><ReactTooltip id={`buyer_${i.UUID}`}><span>{i.buyerName}</span></ReactTooltip><a data-tip data-for={`buyer_${i.UUID}`} href={"#"}><code>{i.buyerID}</code></a></td>
+                <td>{i.issueDate}</td>
+                <td>{i.issueTime || "-"}</td>
+                <td>{formatPrice(i.total)}</td>
+                <td>{formatPrice(i.totalWithTax)}</td>
+                <td style={{minWidth:220}}>
+                  <ReactTooltip id={`view_${i.UUID}`}><span>Görüntüle</span></ReactTooltip><a data-tip data-for={`view_${i.UUID}`} className="btn btn-outline-primary" target={i.UUID} href={i.blob}><FaEye/></a>
+                  <ReactTooltip id={`download_${i.UUID}`}><span>İndir</span></ReactTooltip><a data-tip data-for={`download_${i.UUID}`} className="btn btn-outline-success ms-2" download={`${i.id}.html`} href={i.blob}><FaDownload/></a>
+                  <ReactTooltip id={`print_${i.UUID}`}><span>Yazdır</span></ReactTooltip><a data-tip data-for={`print_${i.UUID}`} className="btn btn-outline-dark  ms-2" href={i.blob} onClick={e => printBlob(e, i.blob)}><FaPrint/></a>
+                  <ReactTooltip id={`delete_${i.UUID}`}><span>Sil</span></ReactTooltip><a data-tip data-for={`delete_${i.UUID}`} className="btn btn-outline-danger ms-2" href={"#"} onClick={e => {
+                  setInvoices(invoices.filter(invoice => invoice.id !== i.id))
+                }}><FaTrash/></a></td>
+  
+                </tr>
+  
+              ))}
+  
+              <tr>
+                <td>Toplam: {invoices.length} Fatura</td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td>{formatPrice(invoices.reduce((s, i) => s + i.total, 0))}</td>
+                <td>{formatPrice(invoices.reduce((s, i) => s + i.totalWithTax, 0))}</td>
+                <td>
+                  {invoices.length > 0 && 
+                  <>
+                  <a href="#" className={"btn btn-primary"} onClick={downloadAll}>Toplu İndir</a>
+                  <a href="#" className={"btn btn-danger"} onClick={downloadExcel}>Excel İndir</a>
+                </>
+}
+                </td>
+              </tr>
+  
+              
+  
+  
+            </tbody>
+          </table>
+        </div>
+      )
+    }
+   
+    </>
   );
 }
