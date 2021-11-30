@@ -1,6 +1,8 @@
 import Table from 'rc-table';
 import React, { useMemo } from 'react';
 import { useDropzone } from 'react-dropzone';
+import JSZip from 'jszip';
+import { saveAs } from 'file-saver';
 
 function b64DecodeUnicode(str) {
   // Going backwards: from bytestream, to percent-encoding, to original string.
@@ -8,6 +10,20 @@ function b64DecodeUnicode(str) {
     return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
   }).join(''));
 }
+var saveData = (function () {
+  var a = document.createElement("a");
+  document.body.appendChild(a);
+  a.style = "display: none";
+  return function (data, fileName) {
+      var json = JSON.stringify(data),
+          blob = new Blob([json], {type: "octet/stream"}),
+          url = window.URL.createObjectURL(blob);
+      a.href = url;
+      a.download = fileName;
+      a.click();
+      window.URL.revokeObjectURL(url);
+  };
+}());
 function readFile(file){
   return new Promise((resolve, reject) => {
     var fr = new FileReader();  
@@ -65,8 +81,8 @@ let xmltohtml = (path, contents) => {
     }
     console.log(v, ext);
     // if(d.)
-    window.d = d;
-    console.log(i, d);
+    // window.d = d;
+    // console.log(i, d);
   }
   // return;
   // let xslt = b64DecodeUnicode(docs[0].innerHTML);
@@ -100,18 +116,28 @@ let xmltohtml = (path, contents) => {
   // frog.close();
   // frog.print();
 
+  const time = xmlDoc.querySelector("Invoice>IssueTime");
+  var t = null;
+  if(time) {
+    t = time.innerHTML;
+  }
+
   return {
     path: path,
     id: xmlDoc.querySelector("Invoice>ID").innerHTML,
     UUID: xmlDoc.querySelector("Invoice>UUID").innerHTML,
     type: xmlDoc.querySelector("Invoice>ProfileID").innerHTML,
     blob: winUrl,
+    contents: blob,
+    original: contents,
     sellerID: xmlDoc.querySelector("Invoice>AccountingSupplierParty>Party>PartyIdentification>ID[schemeID=\"VKN\"],Invoice>AccountingCustomerParty>Party>PartyIdentification>ID[schemeID=\"TCKN\"]").innerHTML,
     sellerName: xmlDoc.querySelector("Invoice>AccountingSupplierParty>Party>PartyName>Name").innerHTML,
     buyerID: xmlDoc.querySelector("Invoice>AccountingCustomerParty>Party>PartyIdentification>ID[schemeID=\"VKN\"],Invoice>AccountingCustomerParty>Party>PartyIdentification>ID[schemeID=\"TCKN\"]").innerHTML,
     buyerName: xmlDoc.querySelector("Invoice>AccountingCustomerParty>Party>PartyName>Name").innerHTML,
-    total: window.xmlDoc.querySelector("Invoice>LegalMonetaryTotal>TaxExclusiveAmount").innerHTML,
-    totalWithTax: window.xmlDoc.querySelector("Invoice>LegalMonetaryTotal>TaxInclusiveAmount").innerHTML
+    total: xmlDoc.querySelector("Invoice>LegalMonetaryTotal>TaxExclusiveAmount").innerHTML,
+    totalWithTax: xmlDoc.querySelector("Invoice>LegalMonetaryTotal>TaxInclusiveAmount").innerHTML,
+    issueDate: xmlDoc.querySelector("Invoice>IssueDate").innerHTML,
+    issueTime: t
   }
 }
 
@@ -179,6 +205,23 @@ export default function StyledDropzone(props) {
     setTimeout(function () { frog.close(); }, 500);
   }
 
+ 
+
+  const downloadAll = (e) => {
+
+    const zipFile = new JSZip();
+    invoices.forEach(invoice => {
+      zipFile.file(invoice.id + ".html", invoice.contents);
+      zipFile.file(invoice.id + ".xml", invoice.original);
+    });
+    zipFile.generateAsync({ type: "blob" })
+      .then(function (content) {
+        // see FileSaver.js
+        saveAs(content, "Faturalar.zip");
+      });
+
+  }
+
   return (
     <section className='container'>
       <div className='container p-2' style={{ backgroundColor: '#3789DC', borderRadius: 5 }}>
@@ -196,18 +239,19 @@ export default function StyledDropzone(props) {
       </aside> */}
       <h2> XML Sonuçları </h2>
       <div className="table-responsive">
-
+      {invoices.length > 0 && <a href="#" onClick={downloadAll}>Toplu İndir</a>}
       <table className="table" style={{fontSize:18}}>
         <thead>
           <tr>
       
-            <th>ID</th>
-            <th>Type</th>
-            <th>Buyer</th>
-            <th>Seller</th>
-            <th>Total</th>
-            <th>TotalWithTax</th>
-            <th>Download</th>
+            <th>Fatura No</th>
+            <th>Türü</th>
+            <th>Satıcı</th>
+            <th>Alıcı</th>
+            <th>Düzenlenme Tarihi</th>
+            <th>Vergiler Hariç Toplam</th>
+            <th>Vergiler Dahil Toplam</th>
+            <th>İşlemler</th>
           </tr>
         </thead>
         <tbody>
@@ -215,8 +259,9 @@ export default function StyledDropzone(props) {
             <tr key={i.UUID}>
               <td>{i.id}</td>
               <td>{i.type}</td>
-              <td>{i.buyerName}({i.buyerID})</td>
               <td>{i.sellerName}({i.sellerID})</td>
+              <td>{i.buyerName}({i.buyerID})</td>
+              <td>{i.issueDate}  /  {i.issueTime ?? "Undefined"}</td>
               <td>{i.total}</td>
               <td>{i.totalWithTax}</td>
               <td><a target={i.UUID} href={i.blob}>Görüntüle</a>
