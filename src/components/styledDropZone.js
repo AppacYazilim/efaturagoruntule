@@ -4,6 +4,7 @@ import { useDropzone } from 'react-dropzone';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import ReactTooltip from "react-tooltip";
+import { FaEye, FaDownload, FaPrint,FaTrash  } from "react-icons/fa";
 
 function b64DecodeUnicode(str) {
   // Going backwards: from bytestream, to percent-encoding, to original string.
@@ -308,7 +309,7 @@ export default function StyledDropzone(props) {
       <h2> İşlenen Faturalar </h2>
       <div className="table-responsive">
       
-      <table className="table" style={{fontSize:18}}>
+      <table className="table table-bordered table-striped" style={{fontSize:18}}>
         <thead>
           <tr>
       
@@ -325,7 +326,7 @@ export default function StyledDropzone(props) {
         </thead>
         <tbody>
           {invoices.map(i => (
-            <tr key={i.UUID}>
+            <tr className='align-middle' key={i.UUID}>
               <td><code>{i.id}</code></td>
               <td>{i.type}</td>
 
@@ -336,12 +337,13 @@ export default function StyledDropzone(props) {
               <td>{i.issueTime || "-"}</td>
               <td>{i.total}</td>
               <td>{i.totalWithTax}</td>
-              <td><a target={i.UUID} href={i.blob}>Görüntüle</a>
-              <a download={`${i.id}.html`} href={i.blob}>İndir</a>
-              <a href={i.blob} onClick={e => printBlob(e, i.blob)}>Yazdır</a>
-              <a href={"#"} onClick={e => {
+              <td style={{minWidth:220}}>
+                <ReactTooltip id={`view_${i.UUID}`}><span>Görüntüle</span></ReactTooltip><a data-tip data-for={`view_${i.UUID}`} class="btn btn-outline-primary" target={i.UUID} href={i.blob}><FaEye/></a>
+                <ReactTooltip id={`download_${i.UUID}`}><span>İndir</span></ReactTooltip><a data-tip data-for={`download_${i.UUID}`} class="btn btn-outline-success ms-2" download={`${i.id}.html`} href={i.blob}><FaDownload/></a>
+                <ReactTooltip id={`print_${i.UUID}`}><span>Yazdır</span></ReactTooltip><a data-tip data-for={`print_${i.UUID}`} class="btn btn-outline-dark  ms-2" href={i.blob} onClick={e => printBlob(e, i.blob)}><FaPrint/></a>
+                <ReactTooltip id={`delete_${i.UUID}`}><span>Sil</span></ReactTooltip><a data-tip data-for={`delete_${i.UUID}`} class="btn btn-outline-danger ms-2" href={"#"} onClick={e => {
                 setInvoices(invoices.filter(invoice => invoice.id !== i.id))
-              }}>Sil</a></td>
+              }}><FaTrash/></a></td>
 
             </tr>
 
@@ -356,7 +358,7 @@ export default function StyledDropzone(props) {
             <td></td>
             <td>{invoices.reduce((s,i) => s + i.total, 0)}</td>
             <td>{invoices.reduce((s,i) => s + i.totalWithTax, 0)}</td>
-            <td>{invoices.length > 0 && <a href="#" onClick={downloadAll}>Toplu İndir</a>}{invoices.length > 0 && <a href="#" onClick={downloadAll}>Excel İndir</a>}</td>
+            <td>{invoices.length > 0 && <a href="#" className='btn btn-outline-success' onClick={downloadAll}>Toplu İndir</a>}{invoices.length > 0 && <a href="#" className='btn btn-outline-success ms-1' onClick={downloadAll}>Excel İndir</a>}</td>
           </tr>
 
 
