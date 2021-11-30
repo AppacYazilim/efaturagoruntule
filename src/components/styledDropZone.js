@@ -1,3 +1,4 @@
+import Table from 'rc-table';
 import React, { useMemo } from 'react';
 import { useDropzone } from 'react-dropzone';
 
@@ -37,16 +38,7 @@ const acceptStyle = {
 const rejectStyle = {
   borderColor: '#ff1744'
 };
-function readFile(file){
-  return new Promise((resolve, reject) => {
-    var fr = new FileReader();  
-    fr.onload = () => {
-      resolve(fr.result )
-    };
-    fr.onerror = reject;
-    fr.readAsText(file);
-  });
-}
+
 let xmltohtml = (path, contents) => {
   let parser = new DOMParser();
   let xmlDoc = parser.parseFromString(contents, "text/xml");
@@ -65,11 +57,11 @@ let xmltohtml = (path, contents) => {
     console.log(v, ext);
     // if(d.)
     window.d = d;
-    // console.log(i, d);
+    console.log(i, d);
   }
   // return;
   // let xslt = b64DecodeUnicode(docs[0].innerHTML);
-  // console.log(xslt);
+  console.log(xslt);
 
   if (!xslt) {
     alert("Geçersiz");
@@ -83,7 +75,7 @@ let xmltohtml = (path, contents) => {
 
   var doc = xsltProcessor.transformToDocument(xmlDoc);
 
-  // console.log(doc);
+  console.log(doc);
   // window.doc = doc;
   let blob = new XMLSerializer().serializeToString(doc)
   // console.log(blob);
@@ -105,7 +97,6 @@ let xmltohtml = (path, contents) => {
     UUID: xmlDoc.querySelector("Invoice>UUID").innerHTML,
     type: xmlDoc.querySelector("Invoice>ProfileID").innerHTML,
     blob: winUrl,
-    docString: blob,
     sellerID: xmlDoc.querySelector("Invoice>AccountingSupplierParty>Party>PartyIdentification>ID[schemeID=\"VKN\"],Invoice>AccountingCustomerParty>Party>PartyIdentification>ID[schemeID=\"TCKN\"]").innerHTML,
     sellerName: xmlDoc.querySelector("Invoice>AccountingSupplierParty>Party>PartyName>Name").innerHTML,
     buyerID: xmlDoc.querySelector("Invoice>AccountingCustomerParty>Party>PartyIdentification>ID[schemeID=\"VKN\"],Invoice>AccountingCustomerParty>Party>PartyIdentification>ID[schemeID=\"TCKN\"]").innerHTML,
@@ -157,6 +148,7 @@ export default function StyledDropzone(props) {
     )
   });
 
+  
   React.useEffect(() => {
     console.log(acceptedFiles)
 
@@ -177,19 +169,46 @@ export default function StyledDropzone(props) {
 
         </div>
       </div>
-      {invoices.length}
-      {invoices.map(i => (
-        <div key={i.UUID}>
-          ID #{i.id}({i.type})
-          Buyer {i.buyerName}({i.buyerID})
-          Seller {i.sellerName}({i.sellerID})
-          Total {i.total}
-          TotalWithTax {i.totalWithTax}
-          <a target={i.UUID} href={i.blob}>Open</a>
-          <a target={i.UUID} download={`${i.id}.html`} href={i.blob}>Download</a>
-        </div>
-      ))}
+      {/* <aside>
+        <h4>Accepted files</h4>
+        <ul>{acceptedFileItems}</ul>
+        <h4>Rejected files</h4>
+        <ul>{fileRejectionItems}</ul>
+      </aside> */}
+      <h2> XML Sonuçları </h2>
+      <div className="table-responsive">
+
+      <table className="table" style={{fontSize:18}}>
+        <thead>
+          <tr>
+      
+            <th>ID</th>
+            <th>Type</th>
+            <th>Buyer</th>
+            <th>Seller</th>
+            <th>Total</th>
+            <th>TotalWithTax</th>
+            <th>Download</th>
+          </tr>
+        </thead>
+        <tbody>
+          {invoices.map(i => (
+            <tr key={i.UUID}>
+              <td>{i.id}</td>
+              <td>{i.type}</td>
+              <td>{i.buyerName}({i.buyerID})</td>
+              <td>{i.sellerName}({i.sellerID})</td>
+              <td>{i.total}</td>
+              <td>{i.totalWithTax}</td>
+
+            </tr>
+
+          ))}
+
+
+        </tbody>
+      </table>
+</div>
     </section>
   );
 }
-
