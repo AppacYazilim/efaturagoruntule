@@ -3,6 +3,7 @@ import React, { useMemo } from 'react';
 import { useDropzone } from 'react-dropzone';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
+import ReactTooltip from "react-tooltip";
 
 function b64DecodeUnicode(str) {
   // Going backwards: from bytestream, to percent-encoding, to original string.
@@ -32,6 +33,16 @@ function readFile(file){
     };
     fr.onerror = reject;
     fr.readAsText(file);
+  });
+}
+function readFileBuffer(file){
+  return new Promise((resolve, reject) => {
+    var fr = new FileReader();  
+    fr.onload = () => {
+      resolve(fr.result )
+    };
+    fr.onerror = reject;
+    fr.readAsArrayBuffer(file);
   });
 }
 const baseStyle = {
@@ -79,17 +90,16 @@ let xmltohtml = (path, contents) => {
     if (ext === "xslt" || ext === "xsl") {
       xslt = b64DecodeUnicode(d.innerHTML);
     }
-    console.log(v, ext);
+    // console.log(v, ext);
     // if(d.)
     // window.d = d;
     // console.log(i, d);
   }
   // return;
   // let xslt = b64DecodeUnicode(docs[0].innerHTML);
-  console.log(xslt);
+  // console.log(xslt);
 
   if (!xslt) {
-    alert("Geçersiz");
     return;
   }
   var xsltProcessor = new XSLTProcessor();
@@ -100,7 +110,7 @@ let xmltohtml = (path, contents) => {
 
   var doc = xsltProcessor.transformToDocument(xmlDoc);
 
-  console.log(doc);
+  // console.log(doc);
   // window.doc = doc;
   let blob = new XMLSerializer().serializeToString(doc)
   // console.log(blob);
@@ -134,8 +144,8 @@ let xmltohtml = (path, contents) => {
     sellerName: xmlDoc.querySelector("Invoice>AccountingSupplierParty>Party>PartyName>Name").innerHTML,
     buyerID: xmlDoc.querySelector("Invoice>AccountingCustomerParty>Party>PartyIdentification>ID[schemeID=\"VKN\"],Invoice>AccountingCustomerParty>Party>PartyIdentification>ID[schemeID=\"TCKN\"]").innerHTML,
     buyerName: xmlDoc.querySelector("Invoice>AccountingCustomerParty>Party>PartyName>Name").innerHTML,
-    total: xmlDoc.querySelector("Invoice>LegalMonetaryTotal>TaxExclusiveAmount").innerHTML,
-    totalWithTax: xmlDoc.querySelector("Invoice>LegalMonetaryTotal>TaxInclusiveAmount").innerHTML,
+    total: parseFloat(xmlDoc.querySelector("Invoice>LegalMonetaryTotal>TaxExclusiveAmount").innerHTML),
+    totalWithTax: parseFloat(xmlDoc.querySelector("Invoice>LegalMonetaryTotal>TaxInclusiveAmount").innerHTML),
     issueDate: xmlDoc.querySelector("Invoice>IssueDate").innerHTML,
     issueTime: t
   }
@@ -150,7 +160,7 @@ export default function StyledDropzone(props) {
     isDragActive,
     isDragAccept,
     isDragReject,
-  } = useDropzone({ accept: 'text/xml', maxFiles: 100 });
+  } = useDropzone({ accept: ['text/xml', 'application/zip'], maxFiles: 100 });
 
   const [invoices, setInvoices] = React.useState([]);
 
@@ -188,9 +198,36 @@ export default function StyledDropzone(props) {
     console.log(acceptedFiles)
 
     Promise.all(acceptedFiles.map(async file => {
-      return xmltohtml(file.path, await readFile(file));
+      if(file.type === "text/xml") {
+        return xmltohtml(file.path, await readFile(file));
+      } else if(file.type === "application/zip") {
+        const fileBuffer = await readFileBuffer(file);
+        
+        const zip = await JSZip.loadAsync(fileBuffer)
+
+
+        window.zip = zip;
+
+        const out = await Promise.all(Object.keys(zip.files).map(async (k) => {
+          const file = zip.files[k];
+
+          if(file.name.endsWith(".xml")) {
+            return xmltohtml(file.name, await file.async("text"));
+          }
+        }));
+
+        return out;
+      } else {
+        return null;
+      }
     })).then(res => {
-      setInvoices(res);
+
+      const resfiltered = res.flat(1).filter(res => res);
+      const existingInvoices = invoices.filter(inv => !resfiltered.find(r => inv.id === r.id));
+
+      console.log(existingInvoices);
+
+      setInvoices([...existingInvoices, ...resfiltered]);
     });
 
   }, [acceptedFiles])
@@ -210,16 +247,21 @@ export default function StyledDropzone(props) {
   const downloadAll = (e) => {
 
     const zipFile = new JSZip();
+
+
     invoices.forEach(invoice => {
-      zipFile.file(invoice.id + ".html", invoice.contents);
-      zipFile.file(invoice.id + ".xml", invoice.original);
+      const [year, month, day] = invoice.issueDate.split('-');
+
+      zipFile.file(`${year}/${month}/${day}/${invoice.id}.html`, invoice.contents);
+      zipFile.file(`${year}/${month}/${day}/${invoice.id}.xml`, invoice.original);
+
+
     });
     zipFile.generateAsync({ type: "blob" })
       .then(function (content) {
         // see FileSaver.js
         saveAs(content, "Faturalar.zip");
       });
-
   }
 
   return (
@@ -237,9 +279,9 @@ export default function StyledDropzone(props) {
         <h4>Rejected files</h4>
         <ul>{fileRejectionItems}</ul>
       </aside> */}
-      <h2> XML Sonuçları </h2>
+      <h2> İşlenen Faturalar </h2>
       <div className="table-responsive">
-      {invoices.length > 0 && <a href="#" onClick={downloadAll}>Toplu İndir</a>}
+      
       <table className="table" style={{fontSize:18}}>
         <thead>
           <tr>
@@ -249,6 +291,7 @@ export default function StyledDropzone(props) {
             <th>Satıcı</th>
             <th>Alıcı</th>
             <th>Düzenlenme Tarihi</th>
+            <th>Düzenlenme Saati</th>
             <th>Vergiler Hariç Toplam</th>
             <th>Vergiler Dahil Toplam</th>
             <th>İşlemler</th>
@@ -259,18 +302,36 @@ export default function StyledDropzone(props) {
             <tr key={i.UUID}>
               <td>{i.id}</td>
               <td>{i.type}</td>
-              <td>{i.sellerName}({i.sellerID})</td>
-              <td>{i.buyerName}({i.buyerID})</td>
-              <td>{i.issueDate}  /  {i.issueTime ?? "Undefined"}</td>
+
+              
+              <td><ReactTooltip id={`seller_${i.UUID}`}><span>{i.sellerName}</span></ReactTooltip><a data-tip data-for={`seller_${i.UUID}`} href={"#"}><code>{i.sellerID}</code></a></td>
+              <td><ReactTooltip id={`buyer_${i.UUID}`}><span>{i.buyerName}</span></ReactTooltip><a data-tip data-for={`buyer_${i.UUID}`} href={"#"}><code>{i.buyerID}</code></a></td>
+              <td>{i.issueDate}</td>
+              <td>{i.issueTime || "-"}</td>
               <td>{i.total}</td>
               <td>{i.totalWithTax}</td>
               <td><a target={i.UUID} href={i.blob}>Görüntüle</a>
               <a download={`${i.id}.html`} href={i.blob}>İndir</a>
-              <a href={i.blob} onClick={e => printBlob(e, i.blob)}>Yazdır</a></td>
+              <a href={i.blob} onClick={e => printBlob(e, i.blob)}>Yazdır</a>
+              <a href={"#"} onClick={e => {
+                setInvoices(invoices.filter(invoice => invoice.id !== i.id))
+              }}>Sil</a></td>
 
             </tr>
 
           ))}
+
+          <tr>
+            <td>Toplam: {invoices.length} Fatura</td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td>{invoices.reduce((s,i) => s + i.total, 0)}</td>
+            <td>{invoices.reduce((s,i) => s + i.totalWithTax, 0)}</td>
+            <td>{invoices.length > 0 && <a href="#" onClick={downloadAll}>Toplu İndir</a>}{invoices.length > 0 && <a href="#" onClick={downloadAll}>Excel İndir</a>}</td>
+          </tr>
 
 
         </tbody>
