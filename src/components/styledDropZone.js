@@ -37,7 +37,16 @@ const acceptStyle = {
 const rejectStyle = {
   borderColor: '#ff1744'
 };
-
+function readFile(file){
+  return new Promise((resolve, reject) => {
+    var fr = new FileReader();  
+    fr.onload = () => {
+      resolve(fr.result )
+    };
+    fr.onerror = reject;
+    fr.readAsText(file);
+  });
+}
 let xmltohtml = (path, contents) => {
   let parser = new DOMParser();
   let xmlDoc = parser.parseFromString(contents, "text/xml");
@@ -56,11 +65,11 @@ let xmltohtml = (path, contents) => {
     console.log(v, ext);
     // if(d.)
     window.d = d;
-    console.log(i, d);
+    // console.log(i, d);
   }
   // return;
   // let xslt = b64DecodeUnicode(docs[0].innerHTML);
-  console.log(xslt);
+  // console.log(xslt);
 
   if (!xslt) {
     alert("Geçersiz");
@@ -74,7 +83,7 @@ let xmltohtml = (path, contents) => {
 
   var doc = xsltProcessor.transformToDocument(xmlDoc);
 
-  console.log(doc);
+  // console.log(doc);
   // window.doc = doc;
   let blob = new XMLSerializer().serializeToString(doc)
   // console.log(blob);
@@ -96,6 +105,7 @@ let xmltohtml = (path, contents) => {
     UUID: xmlDoc.querySelector("Invoice>UUID").innerHTML,
     type: xmlDoc.querySelector("Invoice>ProfileID").innerHTML,
     blob: winUrl,
+    docString: blob,
     sellerID: xmlDoc.querySelector("Invoice>AccountingSupplierParty>Party>PartyIdentification>ID[schemeID=\"VKN\"],Invoice>AccountingCustomerParty>Party>PartyIdentification>ID[schemeID=\"TCKN\"]").innerHTML,
     sellerName: xmlDoc.querySelector("Invoice>AccountingSupplierParty>Party>PartyName>Name").innerHTML,
     buyerID: xmlDoc.querySelector("Invoice>AccountingCustomerParty>Party>PartyIdentification>ID[schemeID=\"VKN\"],Invoice>AccountingCustomerParty>Party>PartyIdentification>ID[schemeID=\"TCKN\"]").innerHTML,
@@ -150,25 +160,12 @@ export default function StyledDropzone(props) {
   React.useEffect(() => {
     console.log(acceptedFiles)
 
-    if (acceptedFiles.length > 0) {
-      for (let i = 0; i < acceptedFiles.length; i++) {
-        const file = acceptedFiles[i];
+    Promise.all(acceptedFiles.map(async file => {
+      return xmltohtml(file.path, await readFile(file));
+    })).then(res => {
+      setInvoices(res);
+    });
 
-        const reader = new FileReader();
-        reader.onload = function (e) {
-          const r = xmltohtml(file.path, e.target.result);
-          console.log(r);
-          if (r) {
-            const existingInvoice = invoices.find(i => i.UUID === r.UUID);
-            if (!existingInvoice) {
-              setInvoices([...invoices, r]);
-            }
-          }
-        }
-        reader.readAsText(file);
-      }
-    }
-    //  xmltohtml(acceptedFiles.name);
   }, [acceptedFiles])
 
   return (
@@ -180,12 +177,7 @@ export default function StyledDropzone(props) {
 
         </div>
       </div>
-      <aside>
-        <h4>Accepted files</h4>
-        <ul>{acceptedFileItems}</ul>
-        <h4>Rejected files</h4>
-        <ul>{fileRejectionItems}</ul>
-      </aside>
+      {invoices.length}
       {invoices.map(i => (
         <div key={i.UUID}>
           ID #{i.id}({i.type})
@@ -194,6 +186,7 @@ export default function StyledDropzone(props) {
           Total {i.total}
           TotalWithTax {i.totalWithTax}
           <a target={i.UUID} href={i.blob}>Open</a>
+          <a target={i.UUID} download={`${i.id}.html`} href={i.blob}>Download</a>
         </div>
       ))}
     </section>
