@@ -8,7 +8,16 @@ function b64DecodeUnicode(str) {
     return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
   }).join(''));
 }
-
+function readFile(file){
+  return new Promise((resolve, reject) => {
+    var fr = new FileReader();  
+    fr.onload = () => {
+      resolve(fr.result )
+    };
+    fr.onerror = reject;
+    fr.readAsText(file);
+  });
+}
 const baseStyle = {
   flex: 1,
   display: 'flex',
@@ -160,6 +169,16 @@ export default function StyledDropzone(props) {
 
   }, [acceptedFiles])
 
+
+  const printBlob = (e, blob) => {
+    e.preventDefault();
+
+    var frog = window.open(blob,  '_blank'); //,"location=no,menubar=no,scrollbars=no,status=no")
+    frog.document.title = "Invoice";
+    frog.print();
+    setTimeout(function () { frog.close(); }, 500);
+  }
+
   return (
     <section className='container'>
       <div className='container p-2' style={{ backgroundColor: '#3789DC', borderRadius: 5 }}>
@@ -200,6 +219,9 @@ export default function StyledDropzone(props) {
               <td>{i.sellerName}({i.sellerID})</td>
               <td>{i.total}</td>
               <td>{i.totalWithTax}</td>
+              <td><a target={i.UUID} href={i.blob}>Görüntüle</a>
+              <a download={`${i.id}.html`} href={i.blob}>İndir</a>
+              <a href={i.blob} onClick={e => printBlob(e, i.blob)}>Yazdır</a></td>
 
             </tr>
 
