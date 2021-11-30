@@ -100,7 +100,7 @@ export default function StyledDropzone(props) {
     isDragActive,
     isDragAccept,
     isDragReject,    
-  } = useDropzone({accept: 'application/*', maxFiles:2});
+  } = useDropzone({accept: 'text/xml', maxFiles:1});
 
   const style = useMemo(() => ({
     ...baseStyle,
@@ -133,7 +133,16 @@ export default function StyledDropzone(props) {
 
    React.useEffect(() => {
      console.log(acceptedFiles)
-     xmltohtml(acceptedFiles.name);
+
+     if(acceptedFiles.length > 0) {
+       const reader = new FileReader();
+       reader.onload = function(e) {
+         xmltohtml(e.target.result);
+       }
+       reader.readAsText(acceptedFiles[0]);
+       
+     }
+    //  xmltohtml(acceptedFiles.name);
    },[acceptedFiles])
 
   return (
