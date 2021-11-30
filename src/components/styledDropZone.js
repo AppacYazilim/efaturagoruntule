@@ -5,6 +5,7 @@ import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import ReactTooltip from "react-tooltip";
 import { FaEye, FaDownload, FaPrint,FaTrash  } from "react-icons/fa";
+import ExportJsonExcel from 'js-export-excel';
 
 function b64DecodeUnicode(str) {
   // Going backwards: from bytestream, to percent-encoding, to original string.
@@ -12,35 +13,22 @@ function b64DecodeUnicode(str) {
     return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
   }).join(''));
 }
-var saveData = (function () {
-  var a = document.createElement("a");
-  document.body.appendChild(a);
-  a.style = "display: none";
-  return function (data, fileName) {
-      var json = JSON.stringify(data),
-          blob = new Blob([json], {type: "octet/stream"}),
-          url = window.URL.createObjectURL(blob);
-      a.href = url;
-      a.download = fileName;
-      a.click();
-      window.URL.revokeObjectURL(url);
-  };
-}());
-function readFile(file){
+
+function readFile(file) {
   return new Promise((resolve, reject) => {
-    var fr = new FileReader();  
+    var fr = new FileReader();
     fr.onload = () => {
-      resolve(fr.result )
+      resolve(fr.result)
     };
     fr.onerror = reject;
     fr.readAsText(file);
   });
 }
-function readFileBuffer(file){
+function readFileBuffer(file) {
   return new Promise((resolve, reject) => {
-    var fr = new FileReader();  
+    var fr = new FileReader();
     fr.onload = () => {
-      resolve(fr.result )
+      resolve(fr.result)
     };
     fr.onerror = reject;
     fr.readAsArrayBuffer(file);
@@ -129,7 +117,7 @@ let xmltohtml = (path, contents) => {
 
   const time = xmlDoc.querySelector("Invoice>IssueTime");
   var t = null;
-  if(time) {
+  if (time) {
     t = time.innerHTML;
   }
 
@@ -138,17 +126,17 @@ let xmltohtml = (path, contents) => {
   var sellerID = null;
   var sellerName = null;
 
-  if(seller) {
+  if (seller) {
     sellerID = seller.querySelector("PartyIdentification>ID[schemeID=\"VKN\"],PartyIdentification>ID[schemeID=\"TCKN\"]").innerHTML;
     console.log(seller);
     sellerName = seller.querySelector("PartyName>Name")?.innerHTML;
 
-    if(!sellerName) {
-      sellerName = seller.querySelector("Person>FirstName")?.innerHTML + " " +  seller.querySelector("Person>FamilyName")?.innerHTML;
+    if (!sellerName) {
+      sellerName = seller.querySelector("Person>FirstName")?.innerHTML + " " + seller.querySelector("Person>FamilyName")?.innerHTML;
     }
   } else {
     console.log("Error: Seller not found", path);
-    return ;
+    return;
   }
 
   return {
@@ -184,6 +172,8 @@ export default function StyledDropzone(props) {
   const [files, setFiles] = React.useState([]);
   const [invoices, setInvoices] = React.useState([]);
 
+  const [numLoad, setNumLoad] = React.useState(0);
+
   const style = useMemo(() => ({
     ...baseStyle,
     ...(isDragActive ? activeStyle : {}),
@@ -216,19 +206,24 @@ export default function StyledDropzone(props) {
   React.useEffect(() => {
     setFiles(acceptedFiles);
   }, [acceptedFiles]);
-  
+
   React.useEffect(() => {
 
-    if(files.length === 0) {
+    if (files.length === 0) {
       return;
     }
 
+    // setNumLoad(files.length);
+
     Promise.all(files.map(async file => {
-      if(file.type === "text/xml") {
-        return xmltohtml(file.path, await readFile(file));
-      } else if(file.type === "application/zip") {
+      if (file.type === "text/xml") {
+        setNumLoad(d => d + 1);
+        const f = xmltohtml(file.path, await readFile(file));
+        setNumLoad(d => d - 1);
+        return f
+      } else if (file.type === "application/zip") {
         const fileBuffer = await readFileBuffer(file);
-        
+
         const zip = await JSZip.loadAsync(fileBuffer)
 
 
@@ -237,8 +232,11 @@ export default function StyledDropzone(props) {
         const out = await Promise.all(Object.keys(zip.files).map(async (k) => {
           const file = zip.files[k];
 
-          if(file.name.endsWith(".xml")) {
-            return xmltohtml(file.name, await file.async("text"));
+          if (file.name.endsWith(".xml")) {
+            setNumLoad(d => d + 1);
+            const data = xmltohtml(file.name, await file.async("text"));
+            setNumLoad(d => d - 1);
+            return data;
           }
         }));
 
@@ -263,13 +261,56 @@ export default function StyledDropzone(props) {
   const printBlob = (e, blob) => {
     e.preventDefault();
 
-    var frog = window.open(blob,  '_blank'); //,"location=no,menubar=no,scrollbars=no,status=no")
+    var frog = window.open(blob, '_blank'); //,"location=no,menubar=no,scrollbars=no,status=no")
     frog.document.title = "Invoice";
     frog.print();
     setTimeout(function () { frog.close(); }, 500);
   }
 
- 
+
+  const downloadExcel = (e) => {
+
+    const data = invoices.map(inv => {
+      return {
+        id: inv.id,
+        satici: inv.sellerName,
+        saticiId: inv.sellerID,
+        alici: inv.buyerName,
+        aliciId: inv.buyerID,
+        tarih: inv.issueDate,
+        saat: inv.issueTime,
+        toplam: `${inv.total} TRY`,
+        vergiler: `${inv.totalWithTax - inv.total} TRY`,
+      }
+    });
+
+    var option = {};
+
+    option.fileName = "excel";
+
+    option.saveAsBlob = true;
+
+    option.datas = [
+      {
+        sheetData: data,
+        sheetName: "Faturalar",
+        sheetFilter: ["id", "satici", "saticiId", "alici", "aliciId", "tarih", "saat", "toplam", "vergiler"],
+        sheetHeader: ["Fatura No", "Satıcı", "Satıcı VKN/TCKN" , "Alıcı", "Alıcı VKN/TCKN", "Düzenleme Tarihi", "Düzenleme Saati", "Toplam", "Vergi"]
+      },
+      {
+        sheetData: data,
+      }
+    ];
+
+    var toExcel = new ExportJsonExcel(option);
+
+    let file = toExcel.saveExcel();
+
+
+    saveAs(file, "invoices.xlsx");
+
+  }
+
 
   const downloadAll = (e) => {
 
@@ -297,7 +338,6 @@ export default function StyledDropzone(props) {
         <div {...getRootProps({ style })}>
           <input {...getInputProps()} />
           <p>XML dosyanızı buraya sürükleyip bırakın veya dosyanızı seçmek için tıklayın</p>
-
         </div>
       </div>
       {/* <aside>
@@ -306,6 +346,7 @@ export default function StyledDropzone(props) {
         <h4>Rejected files</h4>
         <ul>{fileRejectionItems}</ul>
       </aside> */}
+      {numLoad}
       <h2> İşlenen Faturalar </h2>
       <div className="table-responsive">
       
@@ -345,26 +386,28 @@ export default function StyledDropzone(props) {
                 setInvoices(invoices.filter(invoice => invoice.id !== i.id))
               }}><FaTrash/></a></td>
 
+              </tr>
+
+            ))}
+
+            <tr>
+              <td>Toplam: {invoices.length} Fatura</td>
+              <td></td>
+              <td></td>
+              <td></td>
+              <td></td>
+              <td></td>
+              <td>{invoices.reduce((s, i) => s + i.total, 0)}</td>
+              <td>{invoices.reduce((s, i) => s + i.totalWithTax, 0)}</td>
+              <td>{invoices.length > 0 && <a href="#" onClick={downloadAll}>Toplu İndir</a>}{invoices.length > 0 && <a href="#" onClick={downloadExcel}>Excel İndir</a>}</td>
             </tr>
 
-          ))}
-
-          <tr>
-            <td>Toplam: {invoices.length} Fatura</td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td>{invoices.reduce((s,i) => s + i.total, 0)}</td>
-            <td>{invoices.reduce((s,i) => s + i.totalWithTax, 0)}</td>
-            <td>{invoices.length > 0 && <a href="#" className='btn btn-outline-success' onClick={downloadAll}>Toplu İndir</a>}{invoices.length > 0 && <a href="#" className='btn btn-outline-success ms-1' onClick={downloadAll}>Excel İndir</a>}</td>
-          </tr>
+            
 
 
-        </tbody>
-      </table>
-</div>
+          </tbody>
+        </table>
+      </div>
     </section>
   );
 }

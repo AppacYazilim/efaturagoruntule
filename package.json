@@ -9,6 +9,7 @@
     "antd": "^4.17.2",
     "bootstrap": "5.1.3",
     "file-saver": "^2.0.5",
+    "js-export-excel": "^1.1.4",
     "jszip": "^3.7.1",
     "react": "^17.0.2",
     "react-bootstrap": "^2.0.2",
