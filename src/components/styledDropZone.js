@@ -180,6 +180,7 @@ export default function StyledDropzone(props) {
     isDragReject,
   } = useDropzone({ accept: ['text/xml', 'application/zip'], maxFiles: 100 });
 
+  const [files, setFiles] = React.useState([]);
   const [invoices, setInvoices] = React.useState([]);
 
   const style = useMemo(() => ({
@@ -211,11 +212,17 @@ export default function StyledDropzone(props) {
     )
   });
 
+  React.useEffect(() => {
+    setFiles(acceptedFiles);
+  }, [acceptedFiles]);
   
   React.useEffect(() => {
-    console.log(acceptedFiles)
 
-    Promise.all(acceptedFiles.map(async file => {
+    if(files.length === 0) {
+      return;
+    }
+
+    Promise.all(files.map(async file => {
       if(file.type === "text/xml") {
         return xmltohtml(file.path, await readFile(file));
       } else if(file.type === "application/zip") {
@@ -246,9 +253,10 @@ export default function StyledDropzone(props) {
       console.log(existingInvoices);
 
       setInvoices([...existingInvoices, ...resfiltered]);
+      setFiles([]);
     });
 
-  }, [acceptedFiles])
+  }, [files])
 
 
   const printBlob = (e, blob) => {
