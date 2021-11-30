@@ -132,6 +132,24 @@ let xmltohtml = (path, contents) => {
     t = time.innerHTML;
   }
 
+  var seller = xmlDoc.querySelector("Invoice>AccountingSupplierParty>Party")
+
+  var sellerID = null;
+  var sellerName = null;
+
+  if(seller) {
+    sellerID = seller.querySelector("PartyIdentification>ID[schemeID=\"VKN\"],PartyIdentification>ID[schemeID=\"TCKN\"]").innerHTML;
+    console.log(seller);
+    sellerName = seller.querySelector("PartyName>Name")?.innerHTML;
+
+    if(!sellerName) {
+      sellerName = seller.querySelector("Person>FirstName")?.innerHTML + " " +  seller.querySelector("Person>FamilyName")?.innerHTML;
+    }
+  } else {
+    console.log("Error: Seller not found", path);
+    return ;
+  }
+
   return {
     path: path,
     id: xmlDoc.querySelector("Invoice>ID").innerHTML,
@@ -140,8 +158,8 @@ let xmltohtml = (path, contents) => {
     blob: winUrl,
     contents: blob,
     original: contents,
-    sellerID: xmlDoc.querySelector("Invoice>AccountingSupplierParty>Party>PartyIdentification>ID[schemeID=\"VKN\"],Invoice>AccountingCustomerParty>Party>PartyIdentification>ID[schemeID=\"TCKN\"]").innerHTML,
-    sellerName: xmlDoc.querySelector("Invoice>AccountingSupplierParty>Party>PartyName>Name").innerHTML,
+    sellerID,
+    sellerName,
     buyerID: xmlDoc.querySelector("Invoice>AccountingCustomerParty>Party>PartyIdentification>ID[schemeID=\"VKN\"],Invoice>AccountingCustomerParty>Party>PartyIdentification>ID[schemeID=\"TCKN\"]").innerHTML,
     buyerName: xmlDoc.querySelector("Invoice>AccountingCustomerParty>Party>PartyName>Name").innerHTML,
     total: parseFloat(xmlDoc.querySelector("Invoice>LegalMonetaryTotal>TaxExclusiveAmount").innerHTML),
@@ -300,7 +318,7 @@ export default function StyledDropzone(props) {
         <tbody>
           {invoices.map(i => (
             <tr key={i.UUID}>
-              <td>{i.id}</td>
+              <td><code>{i.id}</code></td>
               <td>{i.type}</td>
 
               
