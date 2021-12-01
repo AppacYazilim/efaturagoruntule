@@ -397,8 +397,8 @@ export default function StyledDropzone(props) {
     invoices.forEach(invoice => {
       const [year, month, day] = invoice.issueDate.split('-');
 
-      zipFile.file(`${year}/${month}/${day}/${invoice.uuid}.html`, invoice.contents);
-      zipFile.file(`${year}/${month}/${day}/${invoice.uuid}.xml`, invoice.original);
+      zipFile.file(`${year}/${month}/${day}/${invoice.UUID}.html`, invoice.contents);
+      zipFile.file(`${year}/${month}/${day}/${invoice.UUID}.xml`, invoice.original);
 
 
     });

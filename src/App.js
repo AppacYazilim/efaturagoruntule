@@ -21,6 +21,10 @@ function App() {
         {/* <input id="choseFile" onChange={getXml} type='file' style={{ display: 'none' }} accept="text/xml" /> */}
         <StyledDropZone />
       </header>
+      <footer className={"text-muted"}>
+        2021 &copy;	Appac Yazılım Elektronik San. Tic. Ltd. Şti. <br />
+        Tüm hakları saklıdır. Verileriniz hiçbir şekilde sunucularımıza iletilmemektedir. 
+      </footer>
       <ToastContainer />
     </div>
 
