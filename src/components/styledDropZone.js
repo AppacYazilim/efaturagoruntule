@@ -1,4 +1,3 @@
-import Table from 'rc-table';
 import React, { useMemo } from 'react';
 import { useDropzone } from 'react-dropzone';
 import JSZip from 'jszip';
@@ -8,7 +7,7 @@ import { FaEye, FaDownload, FaPrint, FaTrash } from "react-icons/fa";
 import ExportJsonExcel from 'js-export-excel';
 import AnimationData from '../lf30_editor_xemc1wj7.json';
 import LottieLoader from 'react-lottie-loader';
-import { Badge, Card, ListGroup, Modal, Button, Row, Col } from 'react-bootstrap';
+import { Card, Modal, Button, Row, Col } from 'react-bootstrap';
 
 import { toast } from 'react-toastify';
 
@@ -398,8 +397,8 @@ export default function StyledDropzone(props) {
     invoices.forEach(invoice => {
       const [year, month, day] = invoice.issueDate.split('-');
 
-      zipFile.file(`${year}/${month}/${day}/${invoice.id}.html`, invoice.contents);
-      zipFile.file(`${year}/${month}/${day}/${invoice.id}.xml`, invoice.original);
+      zipFile.file(`${year}/${month}/${day}/${invoice.uuid}.html`, invoice.contents);
+      zipFile.file(`${year}/${month}/${day}/${invoice.uuid}.xml`, invoice.original);
 
 
     });
@@ -472,17 +471,17 @@ export default function StyledDropzone(props) {
                 {invoices.map(i => (
                   <Card key={i.UUID}>
                     <Card.Body>
-                      <Card.Title className={"text-left"} style={{ textAlign: 'left' }}>{i.type} {i.profile}</Card.Title>
+                      <Card.Title className={"text-left"} style={{ textAlign: 'left' }}><a href={"#"} onClick={e => copyText(e, i.id, "Fatura Numarası Panoya Kopyalandı!")}><code>#{i.id}</code></a> {i.type} {i.profile} </Card.Title>
 
                       <Card.Title className={"text-left"} style={{ textAlign: 'left' }}>Satıcı: <ReactTooltip id={`seller_${i.UUID}`}><span>VKN/TCKN: {i.sellerID}</span></ReactTooltip><a data-tip data-for={`seller_${i.UUID}`} onClick={(e) => copyText(e, i.sellerID, "Satıcı VKN/TCKN Panoya Kopyalandı")} href={"#"}>{i.sellerName}</a></Card.Title>
                       <Card.Title className={"text-left"} style={{ textAlign: 'left' }}>Alıcı: <ReactTooltip id={`buyer_${i.UUID}`}><span>VKN/TCKN: {i.buyerID}</span></ReactTooltip><a data-tip data-for={`seller_${i.UUID}`} onClick={(e) => copyText(e, i.buyerID, "Alıcı VKN/TCKN Panoya Kopyalandı")} href={"#"}>{i.buyerName}</a></Card.Title>
-                      <Card.Subtitle className="mb-2 text-muted text-left" style={{ textAlign: 'left' }}>Düzenlenme Tarihi: {i.issueDate} {i.issueTime || "-"}</Card.Subtitle>
+                      <Card.Subtitle className="mb-2 text-muted text-left" style={{ textAlign: 'left' }}>Düzenlenme Tarihi: {i.issueDate} {i.issueTime || ""}</Card.Subtitle>
                       <Card.Subtitle className="mb-2 text-left" style={{ textAlign: 'left' }}>Toplam: {formatPrice(i.total)}<br /> KDV: {formatPrice(i.totalWithTax - i.total)}<br /> Toplam + KDV: {formatPrice(i.totalWithTax)}</Card.Subtitle>
 
                       <div style={{ float: 'right', display: 'flex' }} className={"flex-sm-column flex-md-row"}>
                         <ReactTooltip id={`view_${i.UUID}`}><span>Görüntüle</span></ReactTooltip><a data-tip data-for={`view_${i.UUID}`} className="btn btn-outline-primary" target={i.UUID} href={i.blob}><FaEye /></a>
-                        <ReactTooltip id={`download_${i.UUID}`}><span>İndir</span></ReactTooltip><a data-tip data-for={`download_${i.UUID}`} className="btn btn-outline-success ms-2" onClick={() => toast("İndirme Başlatıldı")} download={`${i.id}.html`} href={i.blob}><FaDownload /></a>
-                        <ReactTooltip id={`xml_download_${i.UUID}`}><span>XML İndir</span></ReactTooltip><a data-tip data-for={`xml_download_${i.UUID}`} className="btn btn-outline-warning ms-2" onClick={() => toast("İndirme Başlatıldı")} download={`${i.id}.xml`} href={i.xmlUrl}><FaDownload /></a>
+                        <ReactTooltip id={`download_${i.UUID}`}><span>İndir</span></ReactTooltip><a data-tip data-for={`download_${i.UUID}`} className="btn btn-outline-success ms-2" onClick={() => toast("İndirme Başlatıldı")} download={`${i.uuid}.html`} href={i.blob}><FaDownload /></a>
+                        <ReactTooltip id={`xml_download_${i.UUID}`}><span>XML İndir</span></ReactTooltip><a data-tip data-for={`xml_download_${i.UUID}`} className="btn btn-outline-warning ms-2" onClick={() => toast("İndirme Başlatıldı")} download={`${i.uuid}.xml`} href={i.xmlUrl}><FaDownload /></a>
                         <ReactTooltip id={`print_${i.UUID}`}><span>Yazdır</span></ReactTooltip><a data-tip data-for={`print_${i.UUID}`} className="btn btn-outline-dark  ms-2" href={i.blob} onClick={e => printBlob(e, i.blob)}><FaPrint /></a>
                         <ReactTooltip id={`delete_${i.UUID}`}><span>Sil</span></ReactTooltip><a data-tip data-for={`delete_${i.UUID}`} className="btn btn-outline-danger ms-2" href={"#"} onClick={e => {
                           setInvoices(invoices.filter(invoice => invoice.id !== i.id))

@@ -1,14 +1,10 @@
 import React from 'react';
-import { useDropzone } from 'react-dropzone';
 import StyledDropZone from '../src/components/styledDropZone'
 import 'bootstrap/dist/css/bootstrap.min.css';
 
-import { ToastContainer, toast } from 'react-toastify';
+import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-
-
 import './App.css';
-import { Col, Container, Row } from 'react-bootstrap';
 // function b64DecodeUnicode(str) {
 //   // Going backwards: from bytestream, to percent-encoding, to original string.
 //   return decodeURIComponent(atob(str).split('').map(function (c) {
