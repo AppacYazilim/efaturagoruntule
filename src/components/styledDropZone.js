@@ -480,8 +480,8 @@ export default function StyledDropzone(props) {
 
                       <div style={{ float: 'right', display: 'flex' }} className={"flex-sm-column flex-md-row"}>
                         <ReactTooltip id={`view_${i.UUID}`}><span>Görüntüle</span></ReactTooltip><a data-tip data-for={`view_${i.UUID}`} className="btn btn-outline-primary" target={i.UUID} href={i.blob}><FaEye /></a>
-                        <ReactTooltip id={`download_${i.UUID}`}><span>İndir</span></ReactTooltip><a data-tip data-for={`download_${i.UUID}`} className="btn btn-outline-success ms-2" onClick={() => toast("İndirme Başlatıldı")} download={`${i.uuid}.html`} href={i.blob}><FaDownload /></a>
-                        <ReactTooltip id={`xml_download_${i.UUID}`}><span>XML İndir</span></ReactTooltip><a data-tip data-for={`xml_download_${i.UUID}`} className="btn btn-outline-warning ms-2" onClick={() => toast("İndirme Başlatıldı")} download={`${i.uuid}.xml`} href={i.xmlUrl}><FaDownload /></a>
+                        <ReactTooltip id={`download_${i.UUID}`}><span>İndir</span></ReactTooltip><a data-tip data-for={`download_${i.UUID}`} className="btn btn-outline-success ms-2" onClick={() => toast("İndirme Başlatıldı")} download={`${i.UUID}.html`} href={i.blob}><FaDownload /></a>
+                        <ReactTooltip id={`xml_download_${i.UUID}`}><span>XML İndir</span></ReactTooltip><a data-tip data-for={`xml_download_${i.UUID}`} className="btn btn-outline-warning ms-2" onClick={() => toast("İndirme Başlatıldı")} download={`${i.UUID}.xml`} href={i.xmlUrl}><FaDownload /></a>
                         <ReactTooltip id={`print_${i.UUID}`}><span>Yazdır</span></ReactTooltip><a data-tip data-for={`print_${i.UUID}`} className="btn btn-outline-dark  ms-2" href={i.blob} onClick={e => printBlob(e, i.blob)}><FaPrint /></a>
                         <ReactTooltip id={`delete_${i.UUID}`}><span>Sil</span></ReactTooltip><a data-tip data-for={`delete_${i.UUID}`} className="btn btn-outline-danger ms-2" href={"#"} onClick={e => {
                           setInvoices(invoices.filter(invoice => invoice.id !== i.id))
