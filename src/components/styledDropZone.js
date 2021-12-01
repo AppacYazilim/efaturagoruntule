@@ -4,11 +4,14 @@ import { useDropzone } from 'react-dropzone';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import ReactTooltip from "react-tooltip";
-import { FaEye, FaDownload, FaPrint,FaTrash  } from "react-icons/fa";
+import { FaEye, FaDownload, FaPrint, FaTrash } from "react-icons/fa";
 import ExportJsonExcel from 'js-export-excel';
 import AnimationData from '../lf30_editor_xemc1wj7.json';
 import LottieLoader from 'react-lottie-loader';
-import ButtonGroup from 'antd/lib/button/button-group';
+import { Badge, Card, ListGroup, Modal, Button, Row, Col } from 'react-bootstrap';
+
+import { toast } from 'react-toastify';
+
 
 function b64DecodeUnicode(str) {
   // Going backwards: from bytestream, to percent-encoding, to original string.
@@ -110,6 +113,10 @@ let xmltohtml = (path, contents) => {
     new Blob([blob], { type: "text/html;charset=utf-8;" })
   );
 
+  const xmlUrl = URL.createObjectURL(
+    new Blob([contents], { type: "text/xml;charset=utf-8;" })
+  );
+
   // var frog = window.open(winUrl,  '_blank'); //,"location=no,menubar=no,scrollbars=no,status=no")
   // frog.print();
 
@@ -129,6 +136,22 @@ let xmltohtml = (path, contents) => {
   var sellerID = null;
   var sellerName = null;
 
+  var notesOut = "";
+  var notes = xmlDoc.querySelectorAll("Invoice>Note")
+
+  for (var i = 0; i < notes.length; ++i) {
+    const note = notes[i];
+
+    const content = note.innerHTML;
+
+    if (!content.startsWith("#")) {
+      notesOut += (note.innerHTML + "\n");
+    }
+  }
+
+  notesOut = notesOut.trim();
+
+
   if (seller) {
     sellerID = seller.querySelector("PartyIdentification>ID[schemeID=\"VKN\"],PartyIdentification>ID[schemeID=\"TCKN\"]").innerHTML;
     console.log(seller);
@@ -142,13 +165,54 @@ let xmltohtml = (path, contents) => {
     return;
   }
 
+  const lines = xmlDoc.querySelectorAll("Invoice>InvoiceLine");
+
+
+  var outLines = [];
+
+  for (var i = 0; i < lines.length; ++i) {
+    const line = lines[i];
+
+    const id = line.querySelector("ID").innerHTML;
+    const amount = parseFloat(line.querySelector("InvoicedQuantity").innerHTML);
+    const unit = line.querySelector("InvoicedQuantity").attributes["unitCode"]?.value;
+    const name = line.querySelector("Item>Name").innerHTML;
+    const description = line.querySelector("Item>Description")?.innerHTML;
+    const price = parseFloat(line.querySelector("Price>PriceAmount").innerHTML);
+    const priceUnit = line.querySelector("Price>PriceAmount").attributes["currencyID"]?.value;
+    const totalPrice = parseFloat(line.querySelector("LineExtensionAmount").innerHTML);
+    const totalPriceUnit = line.querySelector("LineExtensionAmount").attributes["currencyID"]?.value;
+
+
+    const taxData = line.querySelector("TaxTotal");
+
+    var tax = null;
+    if (taxData) {
+
+      const taxName = taxData.querySelector("TaxSubtotal>TaxCategory>TaxScheme>Name")?.innerHTML;
+      const taxAmount = taxData.querySelector("TaxAmount").innerHTML;
+      const taxRate = taxData.querySelector("TaxSubtotal>Percent").innerHTML;
+      tax = {
+        taxName, taxAmount, taxRate
+      }
+    }
+
+
+    outLines.push({
+      id, amount, unit, name, description, price, priceUnit, tax, totalPrice, totalPriceUnit
+    });
+  }
   return {
     path: path,
     id: xmlDoc.querySelector("Invoice>ID").innerHTML,
     UUID: xmlDoc.querySelector("Invoice>UUID").innerHTML,
-    type: xmlDoc.querySelector("Invoice>ProfileID").innerHTML,
+    profile: xmlDoc.querySelector("Invoice>ProfileID").innerHTML,
+    type: xmlDoc.querySelector("Invoice>InvoiceTypeCode").innerHTML,
     blob: winUrl,
     contents: blob,
+    notes: notesOut,
+    xmlUrl,
+    lines: outLines,
     original: contents,
     sellerID,
     sellerName,
@@ -161,10 +225,10 @@ let xmltohtml = (path, contents) => {
   }
 }
 
-const formatPrice = (price) => {
+const formatPrice = (price, currency = 'TRY') => {
   return new Intl.NumberFormat('tr-TR', {
     style: 'currency',
-    currency: 'TRY'
+    currency: currency
   }).format(price);
 }
 
@@ -231,7 +295,7 @@ export default function StyledDropzone(props) {
         const f = xmltohtml(file.path, await readFile(file));
         setNumLoad(d => d - 1);
         return f
-      } else if (file.type === "application/zip"  || file.type === "application/x-zip-compressed" || file.type === "multipart/x-zip") {
+      } else if (file.type === "application/zip" || file.type === "application/x-zip-compressed" || file.type === "multipart/x-zip") {
         const fileBuffer = await readFileBuffer(file);
 
         const zip = await JSZip.loadAsync(fileBuffer)
@@ -259,14 +323,15 @@ export default function StyledDropzone(props) {
       const resfiltered = res.flat(1).filter(res => res);
       const existingInvoices = invoices.filter(inv => !resfiltered.find(r => inv.id === r.id));
 
-      console.log(existingInvoices);
+      console.log(resfiltered);
 
       setInvoices([...existingInvoices, ...resfiltered]);
       setFiles([]);
     });
 
   }, [files])
-
+  const [showInvoice, setShowInvoice] = React.useState(null);
+  const handleClose = () => setShowInvoice(null);
 
   const printBlob = (e, blob) => {
     e.preventDefault();
@@ -279,7 +344,7 @@ export default function StyledDropzone(props) {
 
 
   const downloadExcel = (e) => {
-
+    e.preventDefault();
     const data = invoices.map(inv => {
       return {
         id: inv.id,
@@ -305,7 +370,7 @@ export default function StyledDropzone(props) {
         sheetData: data,
         sheetName: "Faturalar",
         sheetFilter: ["id", "satici", "saticiId", "alici", "aliciId", "tarih", "saat", "toplam", "vergiler"],
-        sheetHeader: ["Fatura No", "Satıcı", "Satıcı VKN/TCKN" , "Alıcı", "Alıcı VKN/TCKN", "Düzenleme Tarihi", "Düzenleme Saati", "Toplam", "Vergi"]
+        sheetHeader: ["Fatura No", "Satıcı", "Satıcı VKN/TCKN", "Alıcı", "Alıcı VKN/TCKN", "Düzenleme Tarihi", "Düzenleme Saati", "Toplam", "Vergi"]
       },
       {
         sheetData: data,
@@ -318,12 +383,15 @@ export default function StyledDropzone(props) {
 
 
     saveAs(file, "invoices.xlsx");
+    toast("Raporunuz İndirilmeye Başladı");
+
+    return false;
 
   }
 
 
   const downloadAll = (e) => {
-
+    e.preventDefault();
     const zipFile = new JSZip();
 
 
@@ -339,104 +407,154 @@ export default function StyledDropzone(props) {
       .then(function (content) {
         // see FileSaver.js
         saveAs(content, "Faturalar.zip");
+        toast("Faturalarınız İndirilmeye Başladı");
       });
+
+    return false;
   }
+
+  const copyText = (e, data, message) => {
+    e.preventDefault();
+    var data = [new window.ClipboardItem({ "text/plain": new Blob([data], { type: "text/plain" }) })];
+    navigator.clipboard.write(data).then(function () {
+      console.log("Copied to clipboard successfully!");
+      toast(message, {});
+    }, function () {
+      console.error("Unable to write to clipboard. :-(");
+    });
+
+    return false;
+
+  }
+
+  const {
+    total,
+    totalWithTax
+  } = React.useMemo(() => {
+    return {
+      total: invoices.reduce((v, i) => v + i.total, 0),
+      totalWithTax: invoices.reduce((v, i) => v + i.totalWithTax, 0),
+    }
+  }, [invoices]);
 
   return (
     <>
-    <section className='container'>
-      <div className='container p-2' style={{ backgroundColor: '#3789DC', borderRadius: 5 }}>
-        <div {...getRootProps({ style })}>
-          <input {...getInputProps()} />
-          <p>XML dosyanızı buraya sürükleyip bırakın veya dosyanızı seçmek için tıklayın</p>
+      <section className='container'>
+        <div className='container p-2' style={{ backgroundColor: '#3789DC', borderRadius: 5 }}>
+          <div {...getRootProps({ style })}>
+            <input {...getInputProps()} />
+            <h2>Dosya Seçim Alanı</h2>
+            <h5>.XML ile biten e-fatura veya e-arşiv faturalarınız buraya sürükleyin.</h5>
+            <small>Dosyaları elle seçmek için buraya tıklayabilirsiniz. </small>
+            <p>Birden fazla xml dosyasını hızlıca yüklemek için bir zip dosyası halinde de yükleyebilirsiniz.
+              <br /> Zip dosyasının içindeki bütün .xml ile biten dosyalar taranacaktır. <br />
+              Seçtiğiniz hiç bir dosya bilgisayarınızdan ayrılmayacaktır! Herhangi bir sunucuya yüklenmeyecektir!</p>
+          </div>
         </div>
-      </div>
-      {/* <aside>
+        {/* <aside>
         <h4>Accepted files</h4>
         <ul>{acceptedFileItems}</ul>
         <h4>Rejected files</h4>
         <ul>{fileRejectionItems}</ul>
       </aside> */}
-      <h2> İşlenen Faturalar </h2>
-    </section>
-    {
-      numLoad ? (
-        <div>
-           <LottieLoader animationData={AnimationData} />
-           <h2>Faturalarınız Yükleniyor {numLoad}</h2>
-        </div>
-      ) : (
+        {invoices.length ?
+          numLoad ? (
+            <div style={{ width: '200px', margin: 'auto', textAlign: 'center' }}>
+              <LottieLoader animationData={AnimationData} />
+              <h2>Faturalarınız Yükleniyor {numLoad}</h2>
+            </div>
+          ) : (
 
-        <div className="table-responsive">
-      
-        <table className="table table-bordered table-striped" style={{fontSize:18}}>
-          <thead>
-            <tr>
-        
-              <th>Fatura No</th>
-              <th>Türü</th>
-              <th>Satıcı</th>
-              <th>Alıcı</th>
-              <th>Düzenlenme Tarihi</th>
-              <th>Düzenlenme Saati</th>
-              <th>Vergiler Hariç Toplam</th>
-              <th>Vergiler Dahil Toplam</th>
-              <th>İşlemler</th>
-            </tr>
-          </thead>
-          <tbody>
-            {invoices.map(i => (
-              <tr className='align-middle' key={i.UUID}>
-                <td><code>{i.id}</code></td>
-                <td>{i.type}</td>
-  
-                
-                <td><ReactTooltip id={`seller_${i.UUID}`}><span>{i.sellerName}</span></ReactTooltip><a data-tip data-for={`seller_${i.UUID}`} href={"#"}><code>{i.sellerID}</code></a></td>
-                <td><ReactTooltip id={`buyer_${i.UUID}`}><span>{i.buyerName}</span></ReactTooltip><a data-tip data-for={`buyer_${i.UUID}`} href={"#"}><code>{i.buyerID}</code></a></td>
-                <td>{i.issueDate}</td>
-                <td>{i.issueTime || "-"}</td>
-                <td>{formatPrice(i.total)}</td>
-                <td>{formatPrice(i.totalWithTax)}</td>
-                <td style={{minWidth:220}}>
-                  <ReactTooltip id={`view_${i.UUID}`}><span>Görüntüle</span></ReactTooltip><a data-tip data-for={`view_${i.UUID}`} className="btn btn-outline-primary" target={i.UUID} href={i.blob}><FaEye/></a>
-                  <ReactTooltip id={`download_${i.UUID}`}><span>İndir</span></ReactTooltip><a data-tip data-for={`download_${i.UUID}`} className="btn btn-outline-success ms-2" download={`${i.id}.html`} href={i.blob}><FaDownload/></a>
-                  <ReactTooltip id={`print_${i.UUID}`}><span>Yazdır</span></ReactTooltip><a data-tip data-for={`print_${i.UUID}`} className="btn btn-outline-dark  ms-2" href={i.blob} onClick={e => printBlob(e, i.blob)}><FaPrint/></a>
-                  <ReactTooltip id={`delete_${i.UUID}`}><span>Sil</span></ReactTooltip><a data-tip data-for={`delete_${i.UUID}`} className="btn btn-outline-danger ms-2" href={"#"} onClick={e => {
-                  setInvoices(invoices.filter(invoice => invoice.id !== i.id))
-                }}><FaTrash/></a></td>
-  
-                </tr>
-  
-              ))}
-  
-              <tr>
-                <td>Toplam: {invoices.length} Fatura</td>
-                <td></td>
-                <td></td>
-                <td></td>
-                <td></td>
-                <td></td>
-                <td>{formatPrice(invoices.reduce((s, i) => s + i.total, 0))}</td>
-                <td>{formatPrice(invoices.reduce((s, i) => s + i.totalWithTax, 0))}</td>
-                <td>
-                  {invoices.length > 0 && 
-                  <>
-                  <a href="#" className={"btn btn-primary"} onClick={downloadAll}>Toplu İndir</a>
-                  <a href="#" className={"btn btn-danger"} onClick={downloadExcel}>Excel İndir</a>
-                </>
-}
-                </td>
-              </tr>
-  
-              
-  
-  
-            </tbody>
-          </table>
-        </div>
-      )
-    }
-   
+            <>
+
+              <h2 className={"mt-4"}> İşlenen Faturalar </h2>
+              <div>
+                {invoices.map(i => (
+                  <Card key={i.UUID}>
+                    <Card.Body>
+                      <Card.Title className={"text-left"} style={{ textAlign: 'left' }}>{i.type} {i.profile}</Card.Title>
+
+                      <Card.Title className={"text-left"} style={{ textAlign: 'left' }}>Satıcı: <ReactTooltip id={`seller_${i.UUID}`}><span>VKN/TCKN: {i.sellerID}</span></ReactTooltip><a data-tip data-for={`seller_${i.UUID}`} onClick={(e) => copyText(e, i.sellerID, "Satıcı VKN/TCKN Panoya Kopyalandı")} href={"#"}>{i.sellerName}</a></Card.Title>
+                      <Card.Title className={"text-left"} style={{ textAlign: 'left' }}>Alıcı: <ReactTooltip id={`buyer_${i.UUID}`}><span>VKN/TCKN: {i.buyerID}</span></ReactTooltip><a data-tip data-for={`seller_${i.UUID}`} onClick={(e) => copyText(e, i.buyerID, "Alıcı VKN/TCKN Panoya Kopyalandı")} href={"#"}>{i.buyerName}</a></Card.Title>
+                      <Card.Subtitle className="mb-2 text-muted text-left" style={{ textAlign: 'left' }}>Düzenlenme Tarihi: {i.issueDate} {i.issueTime || "-"}</Card.Subtitle>
+                      <Card.Subtitle className="mb-2 text-left" style={{ textAlign: 'left' }}>Toplam: {formatPrice(i.total)}<br /> KDV: {formatPrice(i.totalWithTax - i.total)}<br /> Toplam + KDV: {formatPrice(i.totalWithTax)}</Card.Subtitle>
+
+                      <div style={{ float: 'right', display: 'flex' }} className={"flex-sm-column flex-md-row"}>
+                        <ReactTooltip id={`view_${i.UUID}`}><span>Görüntüle</span></ReactTooltip><a data-tip data-for={`view_${i.UUID}`} className="btn btn-outline-primary" target={i.UUID} href={i.blob}><FaEye /></a>
+                        <ReactTooltip id={`download_${i.UUID}`}><span>İndir</span></ReactTooltip><a data-tip data-for={`download_${i.UUID}`} className="btn btn-outline-success ms-2" onClick={() => toast("İndirme Başlatıldı")} download={`${i.id}.html`} href={i.blob}><FaDownload /></a>
+                        <ReactTooltip id={`xml_download_${i.UUID}`}><span>XML İndir</span></ReactTooltip><a data-tip data-for={`xml_download_${i.UUID}`} className="btn btn-outline-warning ms-2" onClick={() => toast("İndirme Başlatıldı")} download={`${i.id}.xml`} href={i.xmlUrl}><FaDownload /></a>
+                        <ReactTooltip id={`print_${i.UUID}`}><span>Yazdır</span></ReactTooltip><a data-tip data-for={`print_${i.UUID}`} className="btn btn-outline-dark  ms-2" href={i.blob} onClick={e => printBlob(e, i.blob)}><FaPrint /></a>
+                        <ReactTooltip id={`delete_${i.UUID}`}><span>Sil</span></ReactTooltip><a data-tip data-for={`delete_${i.UUID}`} className="btn btn-outline-danger ms-2" href={"#"} onClick={e => {
+                          setInvoices(invoices.filter(invoice => invoice.id !== i.id))
+                          toast("Fatura silindi")
+                        }}><FaTrash /></a>
+                      </div>
+                    </Card.Body>
+                  </Card>
+                ))}
+              </div>
+
+              <Card>
+                <Card.Body>
+                  <Card.Title>Toplam {invoices.length} Fatura</Card.Title>
+                  <Card.Text>
+                    Toplam: {formatPrice(total)} <br />
+                    KDV: {formatPrice(totalWithTax - total)}<br />
+                    Toplam + KDV: {formatPrice(totalWithTax)}
+                  </Card.Text>
+                  <Card.Link href={"#"} onClick={downloadExcel}>
+                    Excel Rapor İndir
+                  </Card.Link>
+                  <Card.Link href={"#"} onClick={downloadAll}>
+                    Tümünü İndir
+                  </Card.Link>
+                </Card.Body>
+              </Card>
+            </>
+          ) : <Row className={"mt-4"}>
+
+            <Col lg={4}>
+              <h3>
+                Güvenli
+              </h3>
+              <p>
+                Tüm işlemler kendi bilgisayarınızda yapılır. Seçtiğiniz hiç bir dosya bir sunucuya aktarılmaz.
+              </p>
+            </Col>
+            <Col lg={4}>
+              <h3>
+                Hızlı
+              </h3>
+              <p>
+                İşlemler kendi bilgisayarınızda olduğu için işlemler tamamen kendi bilgisayarınızın hızına bağlıdır. İşlemleriniz için bir sunucuda sıra beklemezsiniz.
+              </p>
+            </Col>
+            <Col lg={4}>
+              <h3>
+                Ölçekli
+              </h3>
+              <p>
+                Faturalarınızı ekledikten sonra <b>Tümünü İndir</b> seçeneği ile istedğiniz formatte bütün faturalarınızı indirebilirsiniz!
+              </p>
+            </Col>
+          </Row>}
+      </section>
+
+
+      <Modal show={showInvoice !== null} onHide={handleClose}>
+        <Modal.Header closeButton>
+          <Modal.Title>Modal heading</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>Woohoo, you're reading this text in a modal!</Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={handleClose}>
+            Close
+          </Button>
+          <Button variant="primary" onClick={handleClose}>
+            Save Changes
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </>
   );
 }
