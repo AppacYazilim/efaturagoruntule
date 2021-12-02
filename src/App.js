@@ -22,7 +22,7 @@ function App() {
         <StyledDropZone />
       </header>
 
-      <footer className={"text-muted container-fluid text-small"}>
+      <footer style={{clear:'both', position:'relative'}} className={"text-muted container-fluid text-small mt-4 "}>
         <small>
         &copy; 2021 <a href={"https://appac.ltd"} rel="noreferrer" target={"_blank"}>Appac Yazılım Elektronik San. Tic. Ltd. Şti. </a><br />
         Tüm hakları saklıdır. Verileriniz hiçbir şekilde sunucularımıza iletilmemektedir. HİÇ BİR ŞEKİLDE SİSTEMİN ÇALIŞMASI ÜZERİNE GARANTİ VERİLMEMEKTİR! TAMAMEN REFERANS AMAÇLI KULLANILMALIDIR. SİSTEM MALİ MÜHÜR DOĞRULAMASI YAPMAMAKTADIR! 
