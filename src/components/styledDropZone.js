@@ -13,6 +13,7 @@ import { toast } from 'react-toastify';
 import { BsFillFileTextFill } from "react-icons/bs";
 
 import background from '../images/bg.png';
+import logo from '../images/xml-fatura-logo.png';
 
 function b64DecodeUnicode(str) {
   // Going backwards: from bytestream, to percent-encoding, to original string.
@@ -442,7 +443,7 @@ export default function StyledDropzone(props) {
       <section className='container-fluid'>
         <div className=' p-5 mt-2 ' style={{ backgroundImage: `url(${background})`, backgroundRepeat: 'no-repeat', backgroundSize: 'cover', borderRadius: 5, textAlign: 'center' }}>
 
-
+        <img className='d-none d-md-block d-lg-block' src= {logo} alt="" height={40} style={{position:'absolute', left:50, top:20}}/> 
           <h1 style={{ color: 'white' }}> XML Fatura <br /> Dönüştürücüsü </h1>
           <div className='p-2 mt-4 container' style={{
             borderWidth: 2,
@@ -484,19 +485,19 @@ export default function StyledDropzone(props) {
               <div  className='container-fluid'>
                 {invoices.map(i => (
                 
-                    <div key={i.UUID} className='row border-bottom shadow mt-2 mb-2 justify-content-center align-items-center' style={{backgroundColor:'white', borderRadius:10}}>
+                    <div key={i.UUID} className='row border-bottom shadow-sm mt-2 mb-2 justify-content-center align-items-center' style={{backgroundColor:'white', borderRadius:10}}>
                       <div className='col-md-2 col-sm-12'>
                         <Card.Title className={"text-left"} style={{ textAlign: 'left' }}><a href={"#"} onClick={e => copyText(e, i.id, "Fatura Numarası Panoya Kopyalandı!")}><code>#{i.id}</code></a> </Card.Title>
                         <b>{i.type} {i.profile}</b>
                       </div>
                       <div className='col-md-2 col-sm-12'>
-                        Satıcı: <ReactTooltip id={`seller_${i.UUID}`}><span>VKN/TCKN: {i.sellerID}</span></ReactTooltip><a data-tip data-for={`seller_${i.UUID}`} onClick={(e) => copyText(e, i.sellerID, "Satıcı VKN/TCKN Panoya Kopyalandı")} href={"#"}>{i.sellerName}</a>
+                        Satıcı:<br/> <ReactTooltip id={`seller_${i.UUID}`}><span>VKN/TCKN: {i.sellerID}</span></ReactTooltip><a data-tip data-for={`seller_${i.UUID}`} onClick={(e) => copyText(e, i.sellerID, "Satıcı VKN/TCKN Panoya Kopyalandı")} href={"#"}>{i.sellerName}</a>
                       </div>
                       <div className='col-md-2 col-sm-12'>
-                      Alıcı: <ReactTooltip id={`buyer_${i.UUID}`}><span>VKN/TCKN: {i.buyerID}</span></ReactTooltip><a data-tip data-for={`seller_${i.UUID}`} onClick={(e) => copyText(e, i.buyerID, "Alıcı VKN/TCKN Panoya Kopyalandı")} href={"#"}>{i.buyerName}</a>
+                      Alıcı:<br/> <ReactTooltip id={`buyer_${i.UUID}`}><span>VKN/TCKN: {i.buyerID}</span></ReactTooltip><a data-tip data-for={`seller_${i.UUID}`} onClick={(e) => copyText(e, i.buyerID, "Alıcı VKN/TCKN Panoya Kopyalandı")} href={"#"}>{i.buyerName}</a>
                       </div>
                       <div className='col-md-2 col-sm-12'>
-                      Düzenlenme Tarihi: {i.issueDate} {i.issueTime || ""}
+                      Düzenlenme Tarihi:<br/> {i.issueDate} {i.issueTime || ""}
                       </div>
                       <div className='col-md-2 col-sm-12'>
                       <p>Toplam: {formatPrice(i.total)}<br /> KDV: {formatPrice(i.totalWithTax - i.total)}<br /> Toplam + KDV: {formatPrice(i.totalWithTax)}</p>
@@ -542,7 +543,7 @@ export default function StyledDropzone(props) {
                 ))}
               </div> */}
 
-                    <div className='row border-bottom shadow mt-2 mb-2 justify-content-center align-items-center' style={{backgroundColor:'white', borderRadius:10}}>
+                    <div className='row border-bottom shadow-sm mt-2 mb-2 justify-content-center align-items-center' style={{backgroundColor:'white', borderRadius:10}}>
                       <div className='col-md-12 pt-2 pb-2'>
                       <Card.Title>Toplam {invoices.length} Fatura</Card.Title>
                   <Card.Text>
