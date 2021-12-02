@@ -7,10 +7,12 @@ import { FaEye, FaDownload, FaPrint, FaTrash } from "react-icons/fa";
 import ExportJsonExcel from 'js-export-excel';
 import AnimationData from '../lf30_editor_xemc1wj7.json';
 import LottieLoader from 'react-lottie-loader';
-import { Card, Modal, Button, Row, Col } from 'react-bootstrap';
+import { Card, Modal, Button, Row, Col, Container } from 'react-bootstrap';
 
 import { toast } from 'react-toastify';
+import { BsFillFileTextFill } from "react-icons/bs";
 
+import background from '../images/bg.png';
 
 function b64DecodeUnicode(str) {
   // Going backwards: from bytestream, to percent-encoding, to original string.
@@ -45,14 +47,13 @@ const baseStyle = {
   flexDirection: 'column',
   alignItems: 'center',
   padding: '20px',
-  borderWidth: 2,
-  borderRadius: 5,
-  borderColor: 'white',
-  borderStyle: 'dashed',
-  backgroundColor: '#3789DC',
+
+  borderRadius: 10,
+
+  // boxShadow: "1px 3px 1px rgba(0, 0, 0, 0.1)",
+  backgroundColor: 'rgba(230, 230, 230, 0.5)',
   color: 'white',
   outline: 'none',
-
   transition: 'border .24s ease-in-out',
 
 };
@@ -438,16 +439,27 @@ export default function StyledDropzone(props) {
 
   return (
     <>
-      <section className='container'>
-        <div className='container p-2' style={{ backgroundColor: '#3789DC', borderRadius: 5 }}>
-          <div {...getRootProps({ style })}>
-            <input {...getInputProps()} />
-            <h2>Dosya Seçim Alanı</h2>
-            <h5>.XML ile biten e-fatura veya e-arşiv faturalarınız buraya sürükleyin.</h5>
-            <small>Dosyaları elle seçmek için buraya tıklayabilirsiniz. </small>
-            <p>Birden fazla xml dosyasını hızlıca yüklemek için bir zip dosyası halinde de yükleyebilirsiniz.
-              <br /> Zip dosyasının içindeki bütün .xml ile biten dosyalar taranacaktır. <br />
-              Seçtiğiniz hiç bir dosya bilgisayarınızdan ayrılmayacaktır! Herhangi bir sunucuya yüklenmeyecektir!</p>
+      <section className='container-fluid'>
+        <div className=' p-5 mt-2 ' style={{ backgroundImage: `url(${background})`, backgroundRepeat: 'no-repeat', backgroundSize: 'cover', borderRadius: 5, textAlign: 'center' }}>
+
+
+          <h1 style={{ color: 'white' }}> XML Fatura <br /> Dönüştürücüsü </h1>
+          <div className='p-2 mt-4 container' style={{
+            borderWidth: 2,
+            borderRadius: 10,
+            borderColor: 'white',
+            borderStyle: 'dashed',
+          }}>
+            <div className='shadow' {...getRootProps({ style })}>
+              <input {...getInputProps()} />
+              <BsFillFileTextFill style={{ color: '#3789DB', fontSize: 84, backgroundColor: 'white', borderRadius: '50%', padding: 15 }} />
+              <h2>Dosya Seçim Alanı</h2>
+              <h5>.XML ile biten e-fatura veya e-arşiv faturalarınız buraya sürükleyin.</h5>
+              {/* <small>Dosyaları elle seçmek için buraya tıklayabilirsiniz. </small> */}
+              <p>Birden fazla xml dosyasını hızlıca yüklemek için bir zip dosyası halinde de yükleyebilirsiniz.</p>
+              {/* <br /> Zip dosyasının içindeki bütün .xml ile biten dosyalar taranacaktır. <br />
+                Seçtiğiniz hiç bir dosya bilgisayarınızdan ayrılmayacaktır! Herhangi bir sunucuya yüklenmeyecektir!</p> */}
+            </div>
           </div>
         </div>
         {/* <aside>
@@ -466,8 +478,45 @@ export default function StyledDropzone(props) {
 
             <>
 
-              <h2 className={"mt-4"}> İşlenen Faturalar </h2>
+              {/* <h2 className={"mt-4"}> İşlenen Faturalar </h2> */}
+
               <div>
+              <div  className='container-fluid'>
+                {invoices.map(i => (
+                
+                    <div key={i.UUID} className='row border-bottom shadow mt-2 mb-2 justify-content-center align-items-center' style={{backgroundColor:'white', borderRadius:10}}>
+                      <div className='col-md-2 col-sm-12'>
+                        <Card.Title className={"text-left"} style={{ textAlign: 'left' }}><a href={"#"} onClick={e => copyText(e, i.id, "Fatura Numarası Panoya Kopyalandı!")}><code>#{i.id}</code></a> </Card.Title>
+                        <b>{i.type} {i.profile}</b>
+                      </div>
+                      <div className='col-md-2 col-sm-12'>
+                        Satıcı: <ReactTooltip id={`seller_${i.UUID}`}><span>VKN/TCKN: {i.sellerID}</span></ReactTooltip><a data-tip data-for={`seller_${i.UUID}`} onClick={(e) => copyText(e, i.sellerID, "Satıcı VKN/TCKN Panoya Kopyalandı")} href={"#"}>{i.sellerName}</a>
+                      </div>
+                      <div className='col-md-2 col-sm-12'>
+                      Alıcı: <ReactTooltip id={`buyer_${i.UUID}`}><span>VKN/TCKN: {i.buyerID}</span></ReactTooltip><a data-tip data-for={`seller_${i.UUID}`} onClick={(e) => copyText(e, i.buyerID, "Alıcı VKN/TCKN Panoya Kopyalandı")} href={"#"}>{i.buyerName}</a>
+                      </div>
+                      <div className='col-md-2 col-sm-12'>
+                      Düzenlenme Tarihi: {i.issueDate} {i.issueTime || ""}
+                      </div>
+                      <div className='col-md-2 col-sm-12'>
+                      <p>Toplam: {formatPrice(i.total)}<br /> KDV: {formatPrice(i.totalWithTax - i.total)}<br /> Toplam + KDV: {formatPrice(i.totalWithTax)}</p>
+                      </div>
+                      <div className='col-md-2 col-sm-12 flex-md-row flex-sm-column pb-2'>
+                 
+                        <ReactTooltip id={`view_${i.UUID}`}><span>Görüntüle</span></ReactTooltip><a data-tip data-for={`view_${i.UUID}`} className="btn btn-outline-primary" target={i.UUID} href={i.blob}><FaEye /></a>
+                        <ReactTooltip id={`download_${i.UUID}`}><span>İndir</span></ReactTooltip><a data-tip data-for={`download_${i.UUID}`} className="btn btn-outline-success ms-1" onClick={() => toast("İndirme Başlatıldı")} download={`${i.UUID}.html`} href={i.blob}><FaDownload /></a>
+                        <ReactTooltip id={`xml_download_${i.UUID}`}><span>XML İndir</span></ReactTooltip><a data-tip data-for={`xml_download_${i.UUID}`} className="btn btn-outline-warning ms-2" onClick={() => toast("İndirme Başlatıldı")} download={`${i.UUID}.xml`} href={i.xmlUrl}><FaDownload /></a>
+                        <ReactTooltip id={`print_${i.UUID}`}><span>Yazdır</span></ReactTooltip><a data-tip data-for={`print_${i.UUID}`} className="btn btn-outline-dark  ms-2" href={i.blob} onClick={e => printBlob(e, i.blob)}><FaPrint /></a>
+                        <ReactTooltip id={`delete_${i.UUID}`}><span>Sil</span></ReactTooltip><a data-tip data-for={`delete_${i.UUID}`} className="btn btn-outline-danger ms-2" href={"#"} onClick={e => {
+                          setInvoices(invoices.filter(invoice => invoice.id !== i.id))
+                          toast("Fatura silindi")
+                        }}><FaTrash /></a>
+                      </div>                 
+                    </div>
+              
+                ))}
+              
+              {/* <div>
                 {invoices.map(i => (
                   <Card key={i.UUID}>
                     <Card.Body>
@@ -491,9 +540,28 @@ export default function StyledDropzone(props) {
                     </Card.Body>
                   </Card>
                 ))}
-              </div>
+              </div> */}
 
-              <Card>
+                    <div className='row border-bottom shadow mt-2 mb-2 justify-content-center align-items-center' style={{backgroundColor:'white', borderRadius:10}}>
+                      <div className='col-md-12 pt-2 pb-2'>
+                      <Card.Title>Toplam {invoices.length} Fatura</Card.Title>
+                  <Card.Text>
+                    Toplam: {formatPrice(total)} <br />
+                    KDV: {formatPrice(totalWithTax - total)}<br />
+                    Toplam + KDV: {formatPrice(totalWithTax)}
+                  </Card.Text>
+                  <Card.Link href={"#"} onClick={downloadExcel}>
+                    Excel Rapor İndir
+                  </Card.Link>
+                  <Card.Link href={"#"} onClick={downloadAll}>
+                    Tümünü İndir
+                  </Card.Link>
+                      </div>
+
+                    </div>
+                    </div>
+                    </div>
+              {/* <Card>
                 <Card.Body>
                   <Card.Title>Toplam {invoices.length} Fatura</Card.Title>
                   <Card.Text>
@@ -508,35 +576,46 @@ export default function StyledDropzone(props) {
                     Tümünü İndir
                   </Card.Link>
                 </Card.Body>
-              </Card>
+              </Card> */}
             </>
-          ) : <Row className={"mt-4"}>
+          ) : <div className='container-fluid' style={{ backgroundColor: '#F4F8FB' }}>
+            <div className='container'>
+              <Row className={"pt-4 pb-4 justify-content-center "} >
 
-            <Col lg={4}>
-              <h3>
-                Güvenli
-              </h3>
-              <p>
-                Tüm işlemler kendi bilgisayarınızda yapılır. Seçtiğiniz hiç bir dosya bir sunucuya aktarılmaz.
-              </p>
-            </Col>
-            <Col lg={4}>
-              <h3>
-                Hızlı
-              </h3>
-              <p>
-                İşlemler kendi bilgisayarınızda olduğu için işlemler tamamen kendi bilgisayarınızın hızına bağlıdır. İşlemleriniz için bir sunucuda sıra beklemezsiniz.
-              </p>
-            </Col>
-            <Col lg={4}>
-              <h3>
-                Ölçekli
-              </h3>
-              <p>
-                Faturalarınızı ekledikten sonra <b>Tümünü İndir</b> seçeneği ile istedğiniz formatte bütün faturalarınızı indirebilirsiniz!
-              </p>
-            </Col>
-          </Row>}
+                <Col lg={4}>
+                  <Card className='shadow-sm p-3 mb-2 bg-white ' style={{ height: '12rem', padding: 10, justifyContent: 'center', borderColor: 'white', borderRadius: 10 }}>
+                    <h3>
+                      Güvenli
+                    </h3>
+                    <p>
+                      Tüm işlemler kendi bilgisayarınızda yapılır. Seçtiğiniz hiç bir dosya bir sunucuya aktarılmaz.
+                    </p>
+                  </Card>
+                </Col>
+                <Col lg={4}>
+                  <Card className='shadow-sm p-3 mb-2 bg-white ' style={{ height: '12rem', padding: 10, justifyContent: 'center', borderColor: 'white', borderRadius: 10 }}>
+                    <h3>
+                      Hızlı
+                    </h3>
+                    <p>
+                      İşlemler kendi bilgisayarınızda olduğu için işlemler tamamen kendi bilgisayarınızın hızına bağlıdır. İşlemleriniz için bir sunucuda sıra beklemezsiniz.
+                    </p>
+                  </Card>
+                </Col>
+                <Col lg={4}>
+                  <Card className='shadow-sm p-3 mb-2 bg-white ' style={{ height: '12rem', padding: 10, justifyContent: 'center', borderColor: 'white', borderRadius: 10 }}>
+                    <h3>
+                      Ölçekli
+                    </h3>
+                    <p>
+                      Faturalarınızı ekledikten sonra <b>Tümünü İndir</b> seçeneği ile istedğiniz formatte bütün faturalarınızı indirebilirsiniz!
+                    </p>
+                  </Card>
+                </Col>
+              </Row>
+            </div>
+          </div>}
+
       </section>
 
 
