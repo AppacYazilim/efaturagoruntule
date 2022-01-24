@@ -3,7 +3,7 @@ import { useDropzone } from 'react-dropzone';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import ReactTooltip from "react-tooltip";
-import { FaEye, FaDownload, FaPrint, FaTrash } from "react-icons/fa";
+import { FaEye, FaDownload, FaPrint, FaTrash, FaCheckCircle } from "react-icons/fa";
 import ExportJsonExcel from 'js-export-excel';
 import AnimationData from '../lf30_editor_xemc1wj7.json';
 import LottieLoader from 'react-lottie-loader';
@@ -222,7 +222,9 @@ let xmltohtml = (path, contents) => {
     total: parseFloat(xmlDoc.querySelector("Invoice>LegalMonetaryTotal>TaxExclusiveAmount").innerHTML),
     totalWithTax: parseFloat(xmlDoc.querySelector("Invoice>LegalMonetaryTotal>TaxInclusiveAmount").innerHTML),
     issueDate: xmlDoc.querySelector("Invoice>IssueDate").innerHTML,
-    issueTime: t
+    issueTime: t,
+    payableAmount: xmlDoc.querySelector("Invoice>LegalMonetaryTotal>PayableAmount").innerHTML,
+    digestValue: xmlDoc.querySelector("UBLExtension>ExtensionContent>Signature>SignedInfo>Reference[URI='']>DigestValue").innerHTML,
   }
 }
 
@@ -503,8 +505,9 @@ export default function StyledDropzone(props) {
                       <p>Toplam: {formatPrice(i.total)}<br /> KDV: {formatPrice(i.totalWithTax - i.total)}<br /> Toplam + KDV: {formatPrice(i.totalWithTax)}</p>
                       </div>
                       <div className='col-md-2 col-sm-12 flex-md-row flex-sm-column pb-2'>
+                      <ReactTooltip id={`verify_${i.UUID}`}><span>Gib Doğrulaması</span></ReactTooltip><a data-tip data-for={`verify_${i.UUID}`} className="btn btn-outline-secondary" target={`_blank`} href={i.type !== "EARSIV" ? `https://sorgu.efatura.gov.tr/eFaturaSrg/efaturasrg?SATICIVKN=${i.sellerID}&BIRIMKOD=${i.id.substr(0,3)}&SIRANO=${i.id.substr(3)}&ODTUTAR=${i.payableAmount}&FHASH=${encodeURIComponent(i.digestValue)}&REPTYPE=EFTRDOGRULAMA` : `https://sorgu.efatura.gov.tr/eFaturaSrg/efaturasrg?SATICIVKNTCKN=${i.sellerID}&ALICIVKNTCKN=${i.buyerID}&FATNO=${i.id}&ODTUTAR&TOPTUTAR&FATDUZTAR&REPTYPE=EARSVDOGRULAMA`}><FaCheckCircle /></a>
                  
-                        <ReactTooltip id={`view_${i.UUID}`}><span>Görüntüle</span></ReactTooltip><a data-tip data-for={`view_${i.UUID}`} className="btn btn-outline-primary" target={i.UUID} href={i.blob}><FaEye /></a>
+                        <ReactTooltip id={`view_${i.UUID}`}><span>Görüntüle</span></ReactTooltip><a data-tip data-for={`view_${i.UUID}`} className="btn btn-outline-primary ms-1" target={i.UUID} href={i.blob}><FaEye /></a>
                         <ReactTooltip id={`download_${i.UUID}`}><span>İndir</span></ReactTooltip><a data-tip data-for={`download_${i.UUID}`} className="btn btn-outline-success ms-1" onClick={() => toast("İndirme Başlatıldı")} download={`${i.UUID}.html`} href={i.blob}><FaDownload /></a>
                         <ReactTooltip id={`xml_download_${i.UUID}`}><span>XML İndir</span></ReactTooltip><a data-tip data-for={`xml_download_${i.UUID}`} className="btn btn-outline-warning ms-2" onClick={() => toast("İndirme Başlatıldı")} download={`${i.UUID}.xml`} href={i.xmlUrl}><FaDownload /></a>
                         <ReactTooltip id={`print_${i.UUID}`}><span>Yazdır</span></ReactTooltip><a data-tip data-for={`print_${i.UUID}`} className="btn btn-outline-dark  ms-2" href={i.blob} onClick={e => printBlob(e, i.blob)}><FaPrint /></a>
@@ -529,7 +532,8 @@ export default function StyledDropzone(props) {
                       <Card.Subtitle className="mb-2 text-left" style={{ textAlign: 'left' }}>Toplam: {formatPrice(i.total)}<br /> KDV: {formatPrice(i.totalWithTax - i.total)}<br /> Toplam + KDV: {formatPrice(i.totalWithTax)}</Card.Subtitle>
 
                       <div style={{ float: 'right', display: 'flex' }} className={"flex-sm-column flex-md-row"}>
-                        <ReactTooltip id={`view_${i.UUID}`}><span>Görüntüle</span></ReactTooltip><a data-tip data-for={`view_${i.UUID}`} className="btn btn-outline-primary" target={i.UUID} href={i.blob}><FaEye /></a>
+                        <ReactTooltip id={`verify_${i.UUID}`}><span>Gib Doğrulaması</span></ReactTooltip><a data-tip data-for={`verify_${i.UUID}`} className="btn btn-outline-secondary" target={`_blank`} href={i.type !== "EARSIV" ? `https://sorgu.efatura.gov.tr/eFaturaSrg/efaturasrg?SATICIVKN=${i.sellerID}&BIRIMKOD=${i.id.substr(0,3)}&SIRANO=${i.id.substr(3)}&ODTUTAR=${i.payableAmount}&FHASH=${encodeURIComponent(i.digestValue)}&REPTYPE=EFTRDOGRULAMA` : `https://sorgu.efatura.gov.tr/eFaturaSrg/efaturasrg?SATICIVKNTCKN=${i.sellerID}&ALICIVKNTCKN=${i.buyerID}&FATNO=${i.id}&ODTUTAR&TOPTUTAR&FATDUZTAR&REPTYPE=EARSVDOGRULAMA`}><FaCheckCircle /></a>
+                        <ReactTooltip id={`view_${i.UUID}`}><span>Görüntüle</span></ReactTooltip><a data-tip data-for={`view_${i.UUID}`} className="btn btn-outline-primary ms-2" target={i.UUID} href={i.blob}><FaEye /></a>
                         <ReactTooltip id={`download_${i.UUID}`}><span>İndir</span></ReactTooltip><a data-tip data-for={`download_${i.UUID}`} className="btn btn-outline-success ms-2" onClick={() => toast("İndirme Başlatıldı")} download={`${i.UUID}.html`} href={i.blob}><FaDownload /></a>
                         <ReactTooltip id={`xml_download_${i.UUID}`}><span>XML İndir</span></ReactTooltip><a data-tip data-for={`xml_download_${i.UUID}`} className="btn btn-outline-warning ms-2" onClick={() => toast("İndirme Başlatıldı")} download={`${i.UUID}.xml`} href={i.xmlUrl}><FaDownload /></a>
                         <ReactTooltip id={`print_${i.UUID}`}><span>Yazdır</span></ReactTooltip><a data-tip data-for={`print_${i.UUID}`} className="btn btn-outline-dark  ms-2" href={i.blob} onClick={e => printBlob(e, i.blob)}><FaPrint /></a>

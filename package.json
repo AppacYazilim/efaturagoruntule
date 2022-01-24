@@ -20,7 +20,8 @@
     "react-scripts": "4.0.3",
     "react-toastify": "^8.1.0",
     "react-tooltip": "^4.2.21",
-    "web-vitals": "^1.0.1"
+    "web-vitals": "^1.0.1",
+    "xmldsigjs": "^2.3.0"
   },
   "scripts": {
     "start": "react-scripts start",
