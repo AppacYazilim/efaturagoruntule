@@ -133,9 +133,13 @@ let xmltohtml = (path, contents) => {
   }
 
   var seller = xmlDoc.querySelector("Invoice>AccountingSupplierParty>Party")
+  var buyer = xmlDoc.querySelector("Invoice>AccountingCustomerParty>Party")
 
   var sellerID = null;
   var sellerName = null;
+
+  var buyerID = null;
+  var buyerName = null;
 
   var notesOut = "";
   var notes = xmlDoc.querySelectorAll("Invoice>Note")
@@ -164,6 +168,18 @@ let xmltohtml = (path, contents) => {
   } else {
     console.log("Error: Seller not found", path);
     return;
+  }
+
+  if (buyer) {
+    buyerID = buyer.querySelector("PartyIdentification>ID[schemeID=\"VKN\"],PartyIdentification>ID[schemeID=\"TCKN\"]").innerHTML;
+    buyerName = buyer.querySelector("PartyName>Name")?.innerHTML;
+
+    if (!buyerName) {
+      buyerName = buyer.querySelector("Person>FirstName")?.innerHTML + " " + buyer.querySelector("Person>FamilyName")?.innerHTML;
+    }
+
+  } else {
+    console.log("Error: Buyer not found", path);
   }
 
   const lines = xmlDoc.querySelectorAll("Invoice>InvoiceLine");
@@ -217,8 +233,8 @@ let xmltohtml = (path, contents) => {
     original: contents,
     sellerID,
     sellerName,
-    buyerID: xmlDoc.querySelector("Invoice>AccountingCustomerParty>Party>PartyIdentification>ID[schemeID=\"VKN\"],Invoice>AccountingCustomerParty>Party>PartyIdentification>ID[schemeID=\"TCKN\"]").innerHTML,
-    buyerName: xmlDoc.querySelector("Invoice>AccountingCustomerParty>Party>PartyName>Name").innerHTML,
+    buyerID: buyerID,
+    buyerName: buyerName,
     total: parseFloat(xmlDoc.querySelector("Invoice>LegalMonetaryTotal>TaxExclusiveAmount").innerHTML),
     totalWithTax: parseFloat(xmlDoc.querySelector("Invoice>LegalMonetaryTotal>TaxInclusiveAmount").innerHTML),
     issueDate: xmlDoc.querySelector("Invoice>IssueDate").innerHTML,
