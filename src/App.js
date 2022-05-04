@@ -17,8 +17,6 @@ function App() {
     <div className="container-fluid" >
       {/* onDrop={f} onDragOver={drag}  */}
       <header>
-       
-        {/* <input id="choseFile" onChange={getXml} type='file' style={{ display: 'none' }} accept="text/xml" /> */}
         <StyledDropZone />
       </header>
 
