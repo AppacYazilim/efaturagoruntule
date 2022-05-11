@@ -10,9 +10,8 @@ jobs:
     runs-on: ubuntu-latest
     environment: 
       name: Deployment
-      url: https://${{ steps.extract_branch.outputs.branch }}.efaturagoruntule.pages.dev/
+      url: https://${{ steps.branch-name.outputs.current_branch }}.efaturagoruntule.pages.dev/
     steps:
-      - name: Extract branch name
-        shell: bash
-        run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
-        id: extract_branch
+      - name: Get branch name
+        id: branch-name
+        uses: tj-actions/branch-names@v5.2
