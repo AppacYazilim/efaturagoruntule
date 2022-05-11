@@ -1,0 +1,17 @@
+name: Deployment
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  deployment:
+    runs-on: ubuntu-latest
+    environment: 
+      name: Deployment
+      url: https://${{ steps.branch-name.outputs.current_branch }}.efaturagoruntule.pages.dev/
+    steps:
+      - name: Get branch name
+        id: branch-name
+        uses: tj-actions/branch-names@v5.2
