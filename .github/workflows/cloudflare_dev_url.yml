@@ -1,0 +1,19 @@
+name: Deployment
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  getBrach:
+    steps:
+      - name: Extract branch name
+      shell: bash
+      run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
+      id: extract_branch
+  deployment:
+    runs-on: ubuntu-latest
+    environment: 
+      name: Deployment
+      url: https://${{ steps.extract_branch.outputs.branch }}.efaturagoruntule.pages.dev/
